@@ -1,0 +1,30 @@
+# Local runtime data
+data/
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Codex / agent local state
+.agents/
+.codex/
