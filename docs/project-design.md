@@ -866,6 +866,8 @@ finished_at
 total_items
 processed_items
 error_message
+created_at
+updated_at
 ```
 
 ### 9.5 Memory

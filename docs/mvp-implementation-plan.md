@@ -115,12 +115,19 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 创建 `backend/` 目录和 Python 包结构。
-- [ ] 在 `pyproject.toml` 中声明 FastAPI、Pydantic、pytest、httpx 等基础依赖。
-- [ ] 实现 `create_app()`，只注册 health 路由。
-- [ ] 编写 `tests/test_health.py`，验证 `/health` 返回 `200` 和 `status=ok`。
-- [ ] 运行 `pytest`，确认测试通过。
-- [ ] 更新 README 中的本地启动方式。
+- [x] 创建 `backend/` 目录和 Python 包结构。
+- [x] 在 `pyproject.toml` 中声明 FastAPI、Pydantic、pytest、httpx 等基础依赖。
+- [x] 实现 `create_app()`，只注册 health 路由。
+- [x] 编写 `tests/test_health.py`，验证 `/health` 返回 `200` 和 `status=ok`。
+- [x] 运行 `pytest`，确认测试通过。
+- [x] 更新 README 中的本地启动方式。
+
+执行记录：
+
+- 分支：`feat/project-skeleton`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_health.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app'`。
+- 绿灯：同一命令通过，结果为 `1 passed`。
+- 环境说明：当前机器只检测到 Python 3.8.8，因此本次本地验证使用临时 `.venv` 跑通；项目目标版本仍为 Python 3.11+，后续正式开发环境需要升级到 Python 3.11 或更高版本。
 
 **验收标准：**
 
@@ -147,11 +154,17 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `AppSettings`，包含 `data_dir`、`database_url`、`sources`、`model`、`privacy`。
-- [ ] 定义 `SourceConfig`，支持 `local_directory`、`local_synced_notes`、`obsidian_vault`。
-- [ ] 编写 `sources.example.yaml`，包含两个本地目录示例和忽略规则示例。
-- [ ] 实现配置读取和默认值。
-- [ ] 测试缺省配置、示例配置、非法 source 类型。
+- [x] 定义 `AppSettings`，包含 `data_dir`、`database_url`、`sources`、`model`、`privacy`。
+- [x] 定义 `SourceConfig`，支持 `local_directory`、`local_synced_notes`、`obsidian_vault`。
+- [x] 编写 `sources.example.yaml`，包含本地目录、笔记 App 本地同步目录、Obsidian vault 示例和忽略规则示例。
+- [x] 实现配置读取和默认值。
+- [x] 测试缺省配置、示例配置、非法 source 类型。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_settings.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.core.settings'`。
+- 绿灯：同一命令通过，结果为 `3 passed`。
+- 产出：`config/sources.example.yaml`、`AppSettings`、`SourceConfig`、`ModelConfig`、`PrivacyConfig`、`load_settings()`。
 
 **验收标准：**
 
@@ -188,13 +201,22 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 SQLAlchemy base 和 session 工厂。
-- [ ] 建立 `Source` 模型，包含 `source_type`、`name`、`uri`、`storage_mode`、`sync_direction`、`last_sync_at`。
-- [ ] 建立 `Document` 模型，包含 `source_id`、`uri`、`title`、`content_hash`、`mime_type`、`remote_id`、`mirror_status`、`metadata_json`。
-- [ ] 建立 `Chunk` 模型，包含 `document_id`、`chunk_index`、`text`、`heading_path`、`page_number`、`token_count`。
-- [ ] 建立 `IndexJob` 和 `Memory` 模型。
-- [ ] 编写 repository 的创建、查询、更新基础方法。
-- [ ] 编写 SQLite 内存库测试。
+- [x] 定义 SQLAlchemy base 和 session 工厂。
+- [x] 建立 `Source` 模型，包含 `source_type`、`name`、`uri`、`storage_mode`、`sync_direction`、`last_sync_at`。
+- [x] 建立 `Document` 模型，包含 `source_id`、`uri`、`title`、`content_hash`、`mime_type`、`remote_id`、`mirror_status`、`metadata_json`。
+- [x] 建立 `Chunk` 模型，包含 `document_id`、`chunk_index`、`text`、`heading_path`、`page_number`、`token_count`。
+- [x] 建立 `IndexJob` 和 `Memory` 模型。
+- [x] 编写 repository 的创建、查询、更新基础方法。
+- [x] 编写 SQLite 内存库测试。
+
+执行记录：
+
+- 红灯 1：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py -v` 首次失败于 `ModuleNotFoundError: No module named 'sqlalchemy'`，因此补充 SQLAlchemy 依赖。
+- 红灯 2：安装依赖后，同一命令失败于 `ModuleNotFoundError: No module named 'app.db'`，确认数据库模块尚未实现。
+- 红灯 3：新增 repository 更新测试后，`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py::test_repositories_update_source_and_document_status -v` 失败于 `AttributeError: 'SourceRepository' object has no attribute 'update'`。
+- 绿灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py -v` 通过，结果为 `3 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `7 passed`。
+- 一致性：`IndexJob` 实现中保留 `created_at`、`updated_at` 审计字段，并已同步更新 `docs/project-design.md` 的数据模型草案。
 
 **验收标准：**
 
@@ -220,11 +242,18 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 初始化 Alembic 配置。
-- [ ] 将 SQLAlchemy metadata 接入 Alembic。
-- [ ] 创建初始迁移脚本。
-- [ ] 测试迁移能在临时 SQLite 数据库上 upgrade。
-- [ ] 测试核心表存在。
+- [x] 初始化 Alembic 配置。
+- [x] 将 SQLAlchemy metadata 接入 Alembic。
+- [x] 创建初始迁移脚本。
+- [x] 测试迁移能在临时 SQLite 数据库上 upgrade。
+- [x] 测试核心表存在。
+
+执行记录：
+
+- 红灯 1：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_migrations.py -v` 首次失败于 `ModuleNotFoundError: No module named 'alembic'`，因此补充 Alembic 依赖。
+- 红灯 2：安装依赖后，同一命令失败于 `Path doesn't exist: 'E:\\Automatic\\personal_wiki_agent\\backend\\alembic'`，确认迁移目录尚未实现。
+- 绿灯：同一命令通过，结果为 `2 passed`，覆盖 `upgrade head` 建表和 `downgrade base` 删除核心表。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `9 passed`。
 
 **验收标准：**
 
@@ -254,13 +283,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `Connector.scan()`，返回发现的文件或远程条目。
-- [ ] 定义 `DiscoveredItem`，包含 `uri`、`title`、`content_hash`、`mtime`、`mime_type`、`metadata`。
-- [ ] 实现本地目录递归扫描。
-- [ ] 支持忽略规则过滤。
-- [ ] `local_synced_notes` 复用本地目录扫描，但保留 source type 和同步目录元数据。
-- [ ] `obsidian_vault` 第一版按 Markdown 目录处理，并预留 front matter、标签、双链增强位置。
-- [ ] 编写临时目录测试。
+- [x] 定义 `Connector.scan()`，返回发现的文件或远程条目。
+- [x] 定义 `DiscoveredItem`，包含 `uri`、`title`、`content_hash`、`mtime`、`mime_type`、`metadata`。
+- [x] 实现本地目录递归扫描。
+- [x] 支持忽略规则过滤。
+- [x] `local_synced_notes` 复用本地目录扫描，但保留 source type 和同步目录元数据。
+- [x] `obsidian_vault` 第一版按 Markdown 目录处理，并预留 front matter、标签、双链增强位置。
+- [x] 编写临时目录测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_connectors_base.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.connectors'`，确认 connector 模块尚未实现。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `14 passed`。
+- 边界：Connector 只负责发现资源并输出统一 `DiscoveredItem`，不调用 parser、不写数据库、不执行索引。
 
 **验收标准：**
 
@@ -279,19 +315,28 @@ MVP 完成后，用户应该能做到：
 
 **产出接口：**
 
-- `detect_changes(source_id, discovered_items) -> ChangeSet`
+- `detect_changes(source_id, discovered_items, existing_documents=None) -> ChangeSet`
+- `DocumentSnapshot`
 - `ChangeSet.added`
 - `ChangeSet.updated`
 - `ChangeSet.deleted`
 - `ChangeSet.unchanged`
+- `ChangeSet.moved_candidates`
 
 **步骤：**
 
-- [ ] 根据 `uri`、`content_hash`、`mtime` 判断新增和更新。
-- [ ] 根据数据库已有记录与扫描结果差异判断删除。
-- [ ] 对疑似移动文件保留 content hash 识别能力。
-- [ ] 为删除文档实现 `status=deleted`，第一版不物理删除。
-- [ ] 编写新增、更新、删除、未变化测试。
+- [x] 根据 `uri`、`content_hash`、`mtime` 判断新增和更新。
+- [x] 根据数据库已有记录与扫描结果差异判断删除。
+- [x] 对疑似移动文件保留 content hash 识别能力。
+- [x] 为删除文档实现 `status=deleted`，第一版不物理删除。
+- [x] 编写新增、更新、删除、未变化测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_sync_detection.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing'`，确认增量同步模块尚未实现。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `19 passed`。
+- 边界：`detect_changes` 保持纯函数，负责对 `DiscoveredItem` 和 `DocumentSnapshot` 做差异判断；数据库读取、状态落库和后续 parser/indexer 编排留给后续任务。
 
 **验收标准：**
 
@@ -325,13 +370,21 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `ParseResult`，包含 `title`、`text`、`sections`、`page_map`、`links`、`metadata`。
-- [ ] Markdown / txt 直接读取。
-- [ ] PDF 使用 PyMuPDF 抽取文本和页码。
-- [ ] docx 使用 python-docx 抽取标题和段落。
-- [ ] HTML 使用 BeautifulSoup/readability 抽取正文。
-- [ ] 为空文件、编码异常、解析失败返回明确错误。
-- [ ] 编写各格式最小样例测试。
+- [x] 定义 `ParseResult`，包含 `title`、`text`、`sections`、`page_map`、`links`、`metadata`。
+- [x] Markdown / txt 直接读取。
+- [x] PDF 使用 PyMuPDF 抽取文本和页码。
+- [x] docx 使用 python-docx 抽取标题和段落。
+- [x] HTML 使用 BeautifulSoup/readability 抽取正文。
+- [x] 为空文件、编码异常、解析失败返回明确错误。
+- [x] 编写各格式最小样例测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_parsers.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.parsers'`，确认 parser 模块尚未实现。
+- 依赖：补充 `PyMuPDF`、`python-docx`、`beautifulsoup4`，并在本地验证环境安装。
+- 绿灯：同一命令通过，结果为 `6 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `25 passed`。
+- 边界：HTML 第一版使用 BeautifulSoup 做轻量正文抽取；readability 类增强留给后续解析质量优化。解析失败、空文件和编码异常统一通过 `ParseResult.warnings` 表达，避免阻断后续索引任务。
 
 **验收标准：**
 
@@ -357,11 +410,18 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] Markdown 优先按标题层级切分。
-- [ ] PDF 保留页码。
-- [ ] txt / docx / HTML 按段落和长度切分。
-- [ ] 每个 chunk 保留 `heading_path`、`page_number`、`token_count`、`chunk_index`。
-- [ ] 测试标题切分、长度切分、页码保留。
+- [x] Markdown 优先按标题层级切分。
+- [x] PDF 保留页码。
+- [x] txt / docx / HTML 按段落和长度切分。
+- [x] 每个 chunk 保留 `heading_path`、`page_number`、`token_count`、`chunk_index`。
+- [x] 测试标题切分、长度切分、页码保留。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_chunker.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing.chunker'`，确认 chunker 模块尚未实现。
+- 绿灯：同一命令通过，结果为 `4 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `29 passed`。
+- 边界：Task 8 只负责把 `ParseResult` 切成内存中的 `ChunkOutput`；写入 `Document` / `Chunk` 表、记录索引任务和失败重试留给 Task 9。
 
 **验收标准：**
 
