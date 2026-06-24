@@ -242,11 +242,18 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 初始化 Alembic 配置。
-- [ ] 将 SQLAlchemy metadata 接入 Alembic。
-- [ ] 创建初始迁移脚本。
-- [ ] 测试迁移能在临时 SQLite 数据库上 upgrade。
-- [ ] 测试核心表存在。
+- [x] 初始化 Alembic 配置。
+- [x] 将 SQLAlchemy metadata 接入 Alembic。
+- [x] 创建初始迁移脚本。
+- [x] 测试迁移能在临时 SQLite 数据库上 upgrade。
+- [x] 测试核心表存在。
+
+执行记录：
+
+- 红灯 1：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_migrations.py -v` 首次失败于 `ModuleNotFoundError: No module named 'alembic'`，因此补充 Alembic 依赖。
+- 红灯 2：安装依赖后，同一命令失败于 `Path doesn't exist: 'E:\\Automatic\\personal_wiki_agent\\backend\\alembic'`，确认迁移目录尚未实现。
+- 绿灯：同一命令通过，结果为 `2 passed`，覆盖 `upgrade head` 建表和 `downgrade base` 删除核心表。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `9 passed`。
 
 **验收标准：**
 
