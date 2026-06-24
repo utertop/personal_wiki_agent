@@ -315,19 +315,28 @@ MVP 完成后，用户应该能做到：
 
 **产出接口：**
 
-- `detect_changes(source_id, discovered_items) -> ChangeSet`
+- `detect_changes(source_id, discovered_items, existing_documents=None) -> ChangeSet`
+- `DocumentSnapshot`
 - `ChangeSet.added`
 - `ChangeSet.updated`
 - `ChangeSet.deleted`
 - `ChangeSet.unchanged`
+- `ChangeSet.moved_candidates`
 
 **步骤：**
 
-- [ ] 根据 `uri`、`content_hash`、`mtime` 判断新增和更新。
-- [ ] 根据数据库已有记录与扫描结果差异判断删除。
-- [ ] 对疑似移动文件保留 content hash 识别能力。
-- [ ] 为删除文档实现 `status=deleted`，第一版不物理删除。
-- [ ] 编写新增、更新、删除、未变化测试。
+- [x] 根据 `uri`、`content_hash`、`mtime` 判断新增和更新。
+- [x] 根据数据库已有记录与扫描结果差异判断删除。
+- [x] 对疑似移动文件保留 content hash 识别能力。
+- [x] 为删除文档实现 `status=deleted`，第一版不物理删除。
+- [x] 编写新增、更新、删除、未变化测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_sync_detection.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing'`，确认增量同步模块尚未实现。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `19 passed`。
+- 边界：`detect_changes` 保持纯函数，负责对 `DiscoveredItem` 和 `DocumentSnapshot` 做差异判断；数据库读取、状态落库和后续 parser/indexer 编排留给后续任务。
 
 **验收标准：**
 
