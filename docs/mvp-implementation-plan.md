@@ -154,11 +154,17 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `AppSettings`，包含 `data_dir`、`database_url`、`sources`、`model`、`privacy`。
-- [ ] 定义 `SourceConfig`，支持 `local_directory`、`local_synced_notes`、`obsidian_vault`。
-- [ ] 编写 `sources.example.yaml`，包含两个本地目录示例和忽略规则示例。
-- [ ] 实现配置读取和默认值。
-- [ ] 测试缺省配置、示例配置、非法 source 类型。
+- [x] 定义 `AppSettings`，包含 `data_dir`、`database_url`、`sources`、`model`、`privacy`。
+- [x] 定义 `SourceConfig`，支持 `local_directory`、`local_synced_notes`、`obsidian_vault`。
+- [x] 编写 `sources.example.yaml`，包含本地目录、笔记 App 本地同步目录、Obsidian vault 示例和忽略规则示例。
+- [x] 实现配置读取和默认值。
+- [x] 测试缺省配置、示例配置、非法 source 类型。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_settings.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.core.settings'`。
+- 绿灯：同一命令通过，结果为 `3 passed`。
+- 产出：`config/sources.example.yaml`、`AppSettings`、`SourceConfig`、`ModelConfig`、`PrivacyConfig`、`load_settings()`。
 
 **验收标准：**
 

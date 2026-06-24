@@ -1,0 +1,36 @@
+data_dir: data
+database_url: sqlite:///data/personal_wiki_agent.db
+
+sources:
+  - source_type: local_directory
+    name: 本地学习资料
+    uri: E:/Knowledge/Learning
+    enabled: true
+    ignore_patterns:
+      - "*.tmp"
+      - "~$*"
+
+  - source_type: local_synced_notes
+    name: 有道云笔记本地同步目录
+    uri: E:/Knowledge/YoudaoSync
+    enabled: true
+    note_app: youdao
+
+  - source_type: obsidian_vault
+    name: Obsidian Vault
+    uri: E:/Knowledge/ObsidianVault
+    enabled: true
+    note_app: obsidian
+
+model:
+  chat_provider: openai-compatible
+  embedding_provider: openai-compatible
+  local_provider: ollama
+
+privacy:
+  ignore_patterns:
+    - "*.tmp"
+    - "*.bak"
+    - ".git/**"
+    - "node_modules/**"
+    - "__pycache__/**"
