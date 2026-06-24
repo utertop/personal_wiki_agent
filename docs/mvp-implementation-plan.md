@@ -283,13 +283,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `Connector.scan()`，返回发现的文件或远程条目。
-- [ ] 定义 `DiscoveredItem`，包含 `uri`、`title`、`content_hash`、`mtime`、`mime_type`、`metadata`。
-- [ ] 实现本地目录递归扫描。
-- [ ] 支持忽略规则过滤。
-- [ ] `local_synced_notes` 复用本地目录扫描，但保留 source type 和同步目录元数据。
-- [ ] `obsidian_vault` 第一版按 Markdown 目录处理，并预留 front matter、标签、双链增强位置。
-- [ ] 编写临时目录测试。
+- [x] 定义 `Connector.scan()`，返回发现的文件或远程条目。
+- [x] 定义 `DiscoveredItem`，包含 `uri`、`title`、`content_hash`、`mtime`、`mime_type`、`metadata`。
+- [x] 实现本地目录递归扫描。
+- [x] 支持忽略规则过滤。
+- [x] `local_synced_notes` 复用本地目录扫描，但保留 source type 和同步目录元数据。
+- [x] `obsidian_vault` 第一版按 Markdown 目录处理，并预留 front matter、标签、双链增强位置。
+- [x] 编写临时目录测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_connectors_base.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.connectors'`，确认 connector 模块尚未实现。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `14 passed`。
+- 边界：Connector 只负责发现资源并输出统一 `DiscoveredItem`，不调用 parser、不写数据库、不执行索引。
 
 **验收标准：**
 
