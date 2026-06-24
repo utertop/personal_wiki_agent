@@ -201,13 +201,22 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 SQLAlchemy base 和 session 工厂。
-- [ ] 建立 `Source` 模型，包含 `source_type`、`name`、`uri`、`storage_mode`、`sync_direction`、`last_sync_at`。
-- [ ] 建立 `Document` 模型，包含 `source_id`、`uri`、`title`、`content_hash`、`mime_type`、`remote_id`、`mirror_status`、`metadata_json`。
-- [ ] 建立 `Chunk` 模型，包含 `document_id`、`chunk_index`、`text`、`heading_path`、`page_number`、`token_count`。
-- [ ] 建立 `IndexJob` 和 `Memory` 模型。
-- [ ] 编写 repository 的创建、查询、更新基础方法。
-- [ ] 编写 SQLite 内存库测试。
+- [x] 定义 SQLAlchemy base 和 session 工厂。
+- [x] 建立 `Source` 模型，包含 `source_type`、`name`、`uri`、`storage_mode`、`sync_direction`、`last_sync_at`。
+- [x] 建立 `Document` 模型，包含 `source_id`、`uri`、`title`、`content_hash`、`mime_type`、`remote_id`、`mirror_status`、`metadata_json`。
+- [x] 建立 `Chunk` 模型，包含 `document_id`、`chunk_index`、`text`、`heading_path`、`page_number`、`token_count`。
+- [x] 建立 `IndexJob` 和 `Memory` 模型。
+- [x] 编写 repository 的创建、查询、更新基础方法。
+- [x] 编写 SQLite 内存库测试。
+
+执行记录：
+
+- 红灯 1：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py -v` 首次失败于 `ModuleNotFoundError: No module named 'sqlalchemy'`，因此补充 SQLAlchemy 依赖。
+- 红灯 2：安装依赖后，同一命令失败于 `ModuleNotFoundError: No module named 'app.db'`，确认数据库模块尚未实现。
+- 红灯 3：新增 repository 更新测试后，`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py::test_repositories_update_source_and_document_status -v` 失败于 `AttributeError: 'SourceRepository' object has no attribute 'update'`。
+- 绿灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_models.py -v` 通过，结果为 `3 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `7 passed`。
+- 一致性：`IndexJob` 实现中保留 `created_at`、`updated_at` 审计字段，并已同步更新 `docs/project-design.md` 的数据模型草案。
 
 **验收标准：**
 
