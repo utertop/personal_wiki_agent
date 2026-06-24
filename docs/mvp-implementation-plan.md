@@ -410,11 +410,18 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] Markdown 优先按标题层级切分。
-- [ ] PDF 保留页码。
-- [ ] txt / docx / HTML 按段落和长度切分。
-- [ ] 每个 chunk 保留 `heading_path`、`page_number`、`token_count`、`chunk_index`。
-- [ ] 测试标题切分、长度切分、页码保留。
+- [x] Markdown 优先按标题层级切分。
+- [x] PDF 保留页码。
+- [x] txt / docx / HTML 按段落和长度切分。
+- [x] 每个 chunk 保留 `heading_path`、`page_number`、`token_count`、`chunk_index`。
+- [x] 测试标题切分、长度切分、页码保留。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_chunker.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing.chunker'`，确认 chunker 模块尚未实现。
+- 绿灯：同一命令通过，结果为 `4 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `29 passed`。
+- 边界：Task 8 只负责把 `ParseResult` 切成内存中的 `ChunkOutput`；写入 `Document` / `Chunk` 表、记录索引任务和失败重试留给 Task 9。
 
 **验收标准：**
 
