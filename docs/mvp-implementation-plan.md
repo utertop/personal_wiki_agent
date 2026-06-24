@@ -370,13 +370,21 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `ParseResult`，包含 `title`、`text`、`sections`、`page_map`、`links`、`metadata`。
-- [ ] Markdown / txt 直接读取。
-- [ ] PDF 使用 PyMuPDF 抽取文本和页码。
-- [ ] docx 使用 python-docx 抽取标题和段落。
-- [ ] HTML 使用 BeautifulSoup/readability 抽取正文。
-- [ ] 为空文件、编码异常、解析失败返回明确错误。
-- [ ] 编写各格式最小样例测试。
+- [x] 定义 `ParseResult`，包含 `title`、`text`、`sections`、`page_map`、`links`、`metadata`。
+- [x] Markdown / txt 直接读取。
+- [x] PDF 使用 PyMuPDF 抽取文本和页码。
+- [x] docx 使用 python-docx 抽取标题和段落。
+- [x] HTML 使用 BeautifulSoup/readability 抽取正文。
+- [x] 为空文件、编码异常、解析失败返回明确错误。
+- [x] 编写各格式最小样例测试。
+
+执行记录：
+
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_parsers.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.parsers'`，确认 parser 模块尚未实现。
+- 依赖：补充 `PyMuPDF`、`python-docx`、`beautifulsoup4`，并在本地验证环境安装。
+- 绿灯：同一命令通过，结果为 `6 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `25 passed`。
+- 边界：HTML 第一版使用 BeautifulSoup 做轻量正文抽取；readability 类增强留给后续解析质量优化。解析失败、空文件和编码异常统一通过 `ParseResult.warnings` 表达，避免阻断后续索引任务。
 
 **验收标准：**
 
