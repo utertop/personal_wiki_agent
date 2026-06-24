@@ -5,7 +5,10 @@ from app.parsers.base import PageMapEntry, ParseResult, ParserAdapter, empty_res
 
 
 class PdfParser(ParserAdapter):
+    """使用 PyMuPDF 解析 PDF 文本，并保留页码映射。"""
+
     def parse(self, file_path: Path) -> ParseResult:
+        """逐页抽取 PDF 文本，返回全文和 page_map。"""
         path = Path(file_path)
         try:
             import fitz
@@ -36,8 +39,10 @@ class PdfParser(ParserAdapter):
 
     @classmethod
     def supported_extensions(cls) -> Sequence[str]:
+        """声明 PDF parser 支持的扩展名。"""
         return [".pdf"]
 
     @classmethod
     def supported_mime_types(cls) -> Sequence[str]:
+        """声明 PDF parser 支持的 MIME 类型。"""
         return ["application/pdf"]

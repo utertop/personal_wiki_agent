@@ -8,6 +8,8 @@ SourceType = Literal["local_directory", "local_synced_notes", "obsidian_vault"]
 
 
 class SourceConfig(BaseModel):
+    """描述一个数据源配置，例如本地目录、同步笔记目录或 Obsidian vault。"""
+
     model_config = ConfigDict(extra="forbid")
 
     source_type: SourceType
@@ -19,6 +21,8 @@ class SourceConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
+    """描述模型供应商配置，后续由 ModelProvider 组件消费。"""
+
     model_config = ConfigDict(extra="forbid")
 
     chat_provider: str = "openai-compatible"
@@ -27,12 +31,16 @@ class ModelConfig(BaseModel):
 
 
 class PrivacyConfig(BaseModel):
+    """描述隐私相关配置，主要用于排除不应索引的文件或目录。"""
+
     model_config = ConfigDict(extra="forbid")
 
     ignore_patterns: List[str] = Field(default_factory=list)
 
 
 class AppSettings(BaseModel):
+    """聚合应用运行所需配置，是后端读取配置文件后的统一对象。"""
+
     model_config = ConfigDict(extra="forbid")
 
     data_dir: Path = Path("data")
@@ -43,6 +51,7 @@ class AppSettings(BaseModel):
 
 
 def load_settings(config_path: Optional[Path]) -> AppSettings:
+    """读取 YAML 配置文件；未提供路径时返回安全默认配置。"""
     if config_path is None:
         return AppSettings()
 
@@ -51,6 +60,7 @@ def load_settings(config_path: Optional[Path]) -> AppSettings:
 
 
 def _read_yaml(config_path: Path) -> Dict[str, Any]:
+    """按 UTF-8 读取 YAML，并确保顶层结构是 object。"""
     with config_path.open("r", encoding="utf-8") as file:
         data = yaml.safe_load(file) or {}
 

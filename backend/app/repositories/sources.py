@@ -7,7 +7,10 @@ from app.models.source import Source
 
 
 class SourceRepository:
+    """封装 Source 表的基础读写操作，避免业务层直接操作 ORM 细节。"""
+
     def __init__(self, session: Session) -> None:
+        """保存当前请求或任务使用的数据库 session。"""
         self.session = session
 
     def create(
@@ -18,6 +21,7 @@ class SourceRepository:
         storage_mode: str,
         sync_direction: str,
     ) -> Source:
+        """创建一个数据源记录，并返回带主键的 ORM 对象。"""
         source = Source(
             source_type=source_type,
             name=name,
@@ -31,6 +35,7 @@ class SourceRepository:
         return source
 
     def get(self, source_id: int) -> Optional[Source]:
+        """按主键查询数据源；不存在时返回 None。"""
         return self.session.get(Source, source_id)
 
     def update(
@@ -39,6 +44,7 @@ class SourceRepository:
         name: Optional[str] = None,
         enabled: Optional[bool] = None,
     ) -> Optional[Source]:
+        """更新数据源的基础可变字段，并刷新更新时间。"""
         source = self.get(source_id)
         if source is None:
             return None

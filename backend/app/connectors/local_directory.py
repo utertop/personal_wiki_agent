@@ -9,15 +9,19 @@ from app.core.settings import SourceConfig
 
 
 class LocalDirectoryConnector(Connector):
+    """递归扫描本地目录，并把文件转换为统一的 DiscoveredItem。"""
+
     def __init__(
         self,
         source_config: SourceConfig,
         global_ignore_patterns: Optional[Sequence[str]] = None,
     ) -> None:
+        """初始化本地目录根路径和忽略规则。"""
         super().__init__(source_config, global_ignore_patterns)
         self.root = Path(source_config.uri)
 
     def scan(self) -> SyncResult:
+        """扫描目录下所有未被忽略的文件，不执行解析和入库。"""
         items = [
             self._build_item(path)
             for path in self._iter_files()
@@ -29,6 +33,7 @@ class LocalDirectoryConnector(Connector):
         )
 
     def _iter_files(self) -> Iterable[Path]:
+        """按稳定顺序递归列出可处理文件，并跳过匹配忽略规则的路径。"""
         if not self.root.exists() or not self.root.is_dir():
             return []
 
@@ -43,6 +48,7 @@ class LocalDirectoryConnector(Connector):
         return paths
 
     def _build_item(self, path: Path) -> DiscoveredItem:
+        """把本地文件转换为 DiscoveredItem，并计算 hash、mtime、mime。"""
         relative_path = _relative_path(self.root, path)
         stat = path.stat()
         return DiscoveredItem(
@@ -55,6 +61,7 @@ class LocalDirectoryConnector(Connector):
         )
 
     def _metadata(self, path: Path, relative_path: str, size_bytes: int) -> Dict[str, Any]:
+        """构造文件级 metadata，供后续同步判断和 parser 保留来源信息。"""
         metadata: Dict[str, Any] = {
             "source_type": self.source_config.source_type,
             "relative_path": relative_path,
@@ -66,10 +73,12 @@ class LocalDirectoryConnector(Connector):
 
 
 def _relative_path(root: Path, path: Path) -> str:
+    """把文件路径转换为跨平台稳定的 POSIX 相对路径。"""
     return path.relative_to(root).as_posix()
 
 
 def _is_ignored(relative_path: str, file_name: str, patterns: Sequence[str]) -> bool:
+    """判断文件名或相对路径是否命中任一忽略规则。"""
     normalized_path = relative_path.replace("\\", "/")
     for pattern in patterns:
         normalized_pattern = pattern.replace("\\", "/")
@@ -85,6 +94,7 @@ def _is_ignored(relative_path: str, file_name: str, patterns: Sequence[str]) -> 
 
 
 def _path_contains_directory(relative_path: str, directory: str) -> bool:
+    """判断相对路径是否位于指定目录模式下。"""
     if not directory:
         return False
     parts = relative_path.split("/")
@@ -92,6 +102,7 @@ def _path_contains_directory(relative_path: str, directory: str) -> bool:
 
 
 def _sha256_file(path: Path) -> str:
+    """分块计算文件 SHA-256，避免大文件一次性读入内存。"""
     hasher = hashlib.sha256()
     with path.open("rb") as file:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
@@ -100,6 +111,7 @@ def _sha256_file(path: Path) -> str:
 
 
 def _guess_mime_type(path: Path) -> str:
+    """根据扩展名推断 MIME 类型，并补齐 Markdown 的常见缺省值。"""
     mime_type, _ = mimetypes.guess_type(str(path))
     if path.suffix.lower() == ".md" and mime_type is None:
         return "text/markdown"

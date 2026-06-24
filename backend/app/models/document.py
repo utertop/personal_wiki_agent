@@ -7,6 +7,8 @@ from app.db.base import Base
 
 
 class Document(Base):
+    """记录一个标准化文档，承接 connector 发现结果和后续解析索引状态。"""
+
     __tablename__ = "documents"
 
     document_id = Column(Integer, primary_key=True, index=True)

@@ -6,6 +6,8 @@ from app.db.base import Base
 
 
 class IndexJob(Base):
+    """记录一次索引任务的执行状态，用于后台同步进度和失败追踪。"""
+
     __tablename__ = "index_jobs"
 
     job_id = Column(Integer, primary_key=True, index=True)

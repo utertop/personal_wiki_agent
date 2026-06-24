@@ -6,6 +6,8 @@ from app.db.base import Base
 
 
 class Memory(Base):
+    """记录 Agent 长期记忆，必须与文档知识库 chunk 物理分离。"""
+
     __tablename__ = "memories"
 
     memory_id = Column(Integer, primary_key=True, index=True)

@@ -15,6 +15,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """以离线模式生成迁移 SQL，不直接连接数据库。"""
     url = context.config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -28,6 +29,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """以在线模式连接数据库并执行 Alembic 迁移。"""
     config_section = context.config.get_section(context.config.config_ini_section)
     connectable = engine_from_config(
         config_section,

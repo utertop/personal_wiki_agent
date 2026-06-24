@@ -9,6 +9,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """创建 MVP 初始 schema，包括数据源、文档、chunk、任务和长期记忆表。"""
     op.create_table(
         "sources",
         sa.Column("source_id", sa.Integer(), nullable=False),
@@ -105,6 +106,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """回滚 MVP 初始 schema，按外键依赖反向删除核心表。"""
     op.drop_index(op.f("ix_chunks_document_id"), table_name="chunks")
     op.drop_index(op.f("ix_chunks_chunk_id"), table_name="chunks")
     op.drop_table("chunks")

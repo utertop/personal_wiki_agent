@@ -5,7 +5,10 @@ from app.parsers.base import ParsedSection, ParseResult, ParserAdapter, empty_re
 
 
 class HtmlParser(ParserAdapter):
+    """使用 BeautifulSoup 解析 HTML 正文、标题和链接。"""
+
     def parse(self, file_path: Path) -> ParseResult:
+        """读取 HTML，移除脚本样式后抽取正文文本和链接。"""
         path = Path(file_path)
         try:
             html = path.read_text(encoding="utf-8")
@@ -46,14 +49,17 @@ class HtmlParser(ParserAdapter):
 
     @classmethod
     def supported_extensions(cls) -> Sequence[str]:
+        """声明 HTML parser 支持的扩展名。"""
         return [".html", ".htm"]
 
     @classmethod
     def supported_mime_types(cls) -> Sequence[str]:
+        """声明 HTML parser 支持的 MIME 类型。"""
         return ["text/html"]
 
 
 def _title(soup, sections: List[ParsedSection], path: Path) -> str:
+    """按 title 标签、首个标题、文件名的顺序推断 HTML 标题。"""
     if soup.title is not None and soup.title.string:
         return soup.title.string.strip()
     if sections:
@@ -62,6 +68,7 @@ def _title(soup, sections: List[ParsedSection], path: Path) -> str:
 
 
 def _extract_sections(target) -> List[ParsedSection]:
+    """从 HTML 标题标签中抽取 sections。"""
     sections: List[ParsedSection] = []
     for tag in target.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
         level = int(tag.name[1])

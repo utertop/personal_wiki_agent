@@ -7,6 +7,8 @@ from app.db.base import Base
 
 
 class Chunk(Base):
+    """记录文档切分后的检索片段，后续会同时进入关键词和向量索引。"""
+
     __tablename__ = "chunks"
 
     chunk_id = Column(Integer, primary_key=True, index=True)

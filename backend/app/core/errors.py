@@ -1,2 +1,2 @@
 class PersonalWikiAgentError(Exception):
-    """Base error for backend domain failures."""
+    """项目内统一业务异常基类，便于 API 层集中转换错误响应。"""

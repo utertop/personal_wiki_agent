@@ -7,6 +7,8 @@ from app.db.base import Base
 
 
 class Source(Base):
+    """记录一个知识数据源，例如本地目录、同步笔记目录或云端笔记。"""
+
     __tablename__ = "sources"
 
     source_id = Column(Integer, primary_key=True, index=True)
