@@ -115,12 +115,19 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 创建 `backend/` 目录和 Python 包结构。
-- [ ] 在 `pyproject.toml` 中声明 FastAPI、Pydantic、pytest、httpx 等基础依赖。
-- [ ] 实现 `create_app()`，只注册 health 路由。
-- [ ] 编写 `tests/test_health.py`，验证 `/health` 返回 `200` 和 `status=ok`。
-- [ ] 运行 `pytest`，确认测试通过。
-- [ ] 更新 README 中的本地启动方式。
+- [x] 创建 `backend/` 目录和 Python 包结构。
+- [x] 在 `pyproject.toml` 中声明 FastAPI、Pydantic、pytest、httpx 等基础依赖。
+- [x] 实现 `create_app()`，只注册 health 路由。
+- [x] 编写 `tests/test_health.py`，验证 `/health` 返回 `200` 和 `status=ok`。
+- [x] 运行 `pytest`，确认测试通过。
+- [x] 更新 README 中的本地启动方式。
+
+执行记录：
+
+- 分支：`feat/project-skeleton`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_health.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app'`。
+- 绿灯：同一命令通过，结果为 `1 passed`。
+- 环境说明：当前机器只检测到 Python 3.8.8，因此本次本地验证使用临时 `.venv` 跑通；项目目标版本仍为 Python 3.11+，后续正式开发环境需要升级到 Python 3.11 或更高版本。
 
 **验收标准：**
 

@@ -62,3 +62,9 @@ MVP 实施计划、任务拆解、阶段验收门和每周追踪模板见：
 - [rules.md](rules.md)
 
 当技术路线、架构原则或 MVP 边界发生变化时，优先更新 `docs/technical-direction.md`，再同步调整 `README.md` 和 `rules.md` 中的引用说明。
+
+## 当前开发入口
+
+当前实现从 MVP Task 1 项目骨架开始推进。后端说明见：
+
+- [backend/README.md](backend/README.md)
