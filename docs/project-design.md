@@ -897,6 +897,7 @@ personal_wiki_agent/
     model-provider-registry.md
     conversational-agent-ui.md
     note-import-export-strategy.md
+    mvp-implementation-plan.md
   config/
     sources.example.yaml
   backend/
@@ -976,6 +977,8 @@ personal_wiki_agent/
 ## 11. 工期排布
 
 以下工期按一个人持续迭代估算。若每天投入时间较少，可按比例延长。
+
+更细的任务拆解、阶段验收门、每周追踪模板和开工顺序见 [mvp-implementation-plan.md](mvp-implementation-plan.md)。
 
 ### 11.1 MVP 工期：6 到 8 周
 

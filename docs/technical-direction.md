@@ -420,3 +420,4 @@ Notion 的 API 相对清晰，可以作为后续云端 connector 的参考样板
 - [model-provider-registry.md](model-provider-registry.md)：模型 provider、模型注册表、能力识别、密钥配置和任务路由设计。
 - [conversational-agent-ui.md](conversational-agent-ui.md)：对话式 Agent UI 的信息架构、界面约束、知识 Agent 控件和验收标准。
 - [note-import-export-strategy.md](note-import-export-strategy.md)：笔记导入导出、跨平台迁移、标准迁移包、格式边界和 adapter 设计。
+- [mvp-implementation-plan.md](mvp-implementation-plan.md)：MVP 实施计划、任务拆解、阶段验收门和每周追踪模板。

@@ -51,6 +51,10 @@ Personal Wiki Agent 是一个本地优先、可持续学习、可主动协作的
 
 - [docs/note-import-export-strategy.md](docs/note-import-export-strategy.md)
 
+MVP 实施计划、任务拆解、阶段验收门和每周追踪模板见：
+
+- [docs/mvp-implementation-plan.md](docs/mvp-implementation-plan.md)
+
 ## 开发约束
 
 开发前先阅读：

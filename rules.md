@@ -59,6 +59,7 @@
 - [docs/model-provider-registry.md](docs/model-provider-registry.md)
 - [docs/conversational-agent-ui.md](docs/conversational-agent-ui.md)
 - [docs/note-import-export-strategy.md](docs/note-import-export-strategy.md)
+- [docs/mvp-implementation-plan.md](docs/mvp-implementation-plan.md)
 - [rules.md](rules.md)
 
 如果后续新增需求文档、架构文档、API 文档、开发计划、验收标准或运维部署文档，也应自动纳入连锁检查范围，不需要等本文件先列出。
