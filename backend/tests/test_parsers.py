@@ -9,6 +9,8 @@ from app.parsers.text import TextParser
 
 
 def test_markdown_parser_extracts_title_sections_and_links(tmp_path) -> None:
+    """验证 Markdown 解析器会提取标题、章节和链接。"""
+
     path = tmp_path / "rag.md"
     path.write_text(
         "# RAG 笔记\n\n"
@@ -32,6 +34,8 @@ def test_markdown_parser_extracts_title_sections_and_links(tmp_path) -> None:
 
 
 def test_text_parser_reads_plain_text_and_warns_for_empty_file(tmp_path) -> None:
+    """验证纯文本解析器读取正文，并对空文件给出告警。"""
+
     path = tmp_path / "plain.txt"
     path.write_text("第一行\n第二行", encoding="utf-8")
     empty_path = tmp_path / "empty.txt"
@@ -49,6 +53,8 @@ def test_text_parser_reads_plain_text_and_warns_for_empty_file(tmp_path) -> None
 
 
 def test_text_parser_returns_warning_for_encoding_errors(tmp_path) -> None:
+    """验证纯文本解析器遇到编码错误时返回告警而不是抛出异常。"""
+
     path = tmp_path / "broken.txt"
     path.write_bytes(b"\xff\xfe\x00")
 
@@ -60,6 +66,8 @@ def test_text_parser_returns_warning_for_encoding_errors(tmp_path) -> None:
 
 
 def test_pdf_parser_extracts_text_and_page_map(tmp_path) -> None:
+    """验证 PDF 解析器会提取文本并生成页码映射。"""
+
     path = tmp_path / "sample.pdf"
     _write_pdf(path, ["page one knowledge", "page two knowledge"])
 
@@ -73,6 +81,8 @@ def test_pdf_parser_extracts_text_and_page_map(tmp_path) -> None:
 
 
 def test_docx_parser_extracts_heading_and_paragraphs(tmp_path) -> None:
+    """验证 docx 解析器会提取标题和段落正文。"""
+
     path = tmp_path / "note.docx"
     _write_docx(path)
 
@@ -85,6 +95,8 @@ def test_docx_parser_extracts_heading_and_paragraphs(tmp_path) -> None:
 
 
 def test_html_parser_extracts_title_body_and_links(tmp_path) -> None:
+    """验证 HTML 解析器会提取正文、标题和链接并忽略脚本内容。"""
+
     path = tmp_path / "page.html"
     path.write_text(
         "<html><head><title>网页标题</title><script>ignored()</script></head>"
@@ -104,6 +116,8 @@ def test_html_parser_extracts_title_body_and_links(tmp_path) -> None:
 
 
 def _write_pdf(path: Path, page_texts) -> None:
+    """写入测试用 PDF 文件，供 PDF 解析器测试读取。"""
+
     import fitz
 
     document = fitz.open()
@@ -115,6 +129,8 @@ def _write_pdf(path: Path, page_texts) -> None:
 
 
 def _write_docx(path: Path) -> None:
+    """写入测试用 docx 文件，供 Word 解析器测试读取。"""
+
     from docx import Document
 
     document = Document()

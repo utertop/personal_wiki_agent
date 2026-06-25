@@ -11,6 +11,8 @@ from app.repositories.sources import SourceRepository
 
 
 def make_session():
+    """创建测试用内存数据库会话，并初始化全部模型表。"""
+
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine)
@@ -18,6 +20,8 @@ def make_session():
 
 
 def create_local_source(session, root, name="本地资料"):
+    """创建测试用本地目录数据源，供索引流水线读取。"""
+
     return SourceRepository(session).create(
         source_type="local_directory",
         name=name,
@@ -28,6 +32,8 @@ def create_local_source(session, root, name="本地资料"):
 
 
 def test_pipeline_indexes_new_local_markdown_document(tmp_path) -> None:
+    """验证索引流水线可以解析并写入新的本地 Markdown 文档。"""
+
     note = tmp_path / "rag.md"
     note.write_text("# RAG\n\n知识库内容", encoding="utf-8")
     session = make_session()
@@ -50,6 +56,8 @@ def test_pipeline_indexes_new_local_markdown_document(tmp_path) -> None:
 
 
 def test_pipeline_skips_unchanged_and_replaces_updated_chunks(tmp_path) -> None:
+    """验证索引流水线会跳过未变化文档，并替换已更新文档的 chunk。"""
+
     note = tmp_path / "topic.md"
     note.write_text("# Topic\n\n旧内容", encoding="utf-8")
     session = make_session()
@@ -72,6 +80,8 @@ def test_pipeline_skips_unchanged_and_replaces_updated_chunks(tmp_path) -> None:
 
 
 def test_pipeline_marks_missing_document_deleted(tmp_path) -> None:
+    """验证源目录中消失的文档会被标记为 deleted。"""
+
     note = tmp_path / "remove.md"
     note.write_text("# Remove\n\n即将删除", encoding="utf-8")
     session = make_session()
@@ -90,6 +100,8 @@ def test_pipeline_marks_missing_document_deleted(tmp_path) -> None:
 
 
 def test_pipeline_records_unsupported_file_failure_without_blocking_source(tmp_path) -> None:
+    """验证不支持的文件会记录失败，但不会阻塞同一数据源的其他文档。"""
+
     (tmp_path / "keep.md").write_text("# Keep\n\n可解析", encoding="utf-8")
     (tmp_path / "data.bin").write_bytes(b"binary")
     session = make_session()
@@ -107,6 +119,8 @@ def test_pipeline_records_unsupported_file_failure_without_blocking_source(tmp_p
 
 
 def test_pipeline_runs_all_enabled_sources(tmp_path) -> None:
+    """验证索引流水线可以遍历并执行所有启用的数据源。"""
+
     first_root = tmp_path / "first"
     second_root = tmp_path / "second"
     first_root.mkdir()
@@ -126,6 +140,8 @@ def test_pipeline_runs_all_enabled_sources(tmp_path) -> None:
 
 
 def test_pipeline_writes_chunks_to_lexical_index_when_configured(tmp_path) -> None:
+    """验证配置关键词索引后，流水线会把 chunk 写入 SQLite FTS。"""
+
     note = tmp_path / "searchable.md"
     note.write_text("# Searchable\n\n关键词 检索 内容", encoding="utf-8")
     session = make_session()
@@ -140,6 +156,8 @@ def test_pipeline_writes_chunks_to_lexical_index_when_configured(tmp_path) -> No
 
 
 def test_pipeline_removes_lexical_hits_for_deleted_documents(tmp_path) -> None:
+    """验证文档删除后，流水线会同步清理关键词索引命中。"""
+
     note = tmp_path / "delete-search.md"
     note.write_text("# Delete Search\n\n删除后 不应 命中", encoding="utf-8")
     session = make_session()

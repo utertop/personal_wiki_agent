@@ -1,6 +1,7 @@
 """Indexing workflow helpers."""
 
 from app.indexing.chunker import ChunkInput, ChunkOutput, Chunker, chunk_document
+from app.indexing.embedding import Embedder, EmbeddingResult, HashingEmbedder
 from app.indexing.lexical import LexicalIndex, SearchFilters, SearchHit
 from app.indexing.sync import (
     ChangeSet,
@@ -16,6 +17,13 @@ from app.indexing.pipeline import (
     UnsupportedConnectorError,
     UnsupportedParserError,
 )
+from app.indexing.vector_store import (
+    InMemoryVectorStore,
+    VectorRecord,
+    VectorSearchFilters,
+    VectorSearchHit,
+    VectorStore,
+)
 
 __all__ = [
     "ChunkInput",
@@ -24,6 +32,10 @@ __all__ = [
     "ChangeSet",
     "DeletedDocumentChange",
     "DocumentSnapshot",
+    "Embedder",
+    "EmbeddingResult",
+    "HashingEmbedder",
+    "InMemoryVectorStore",
     "IndexingPipeline",
     "LexicalIndex",
     "MatchedDocumentChange",
@@ -33,6 +45,10 @@ __all__ = [
     "SearchHit",
     "UnsupportedConnectorError",
     "UnsupportedParserError",
+    "VectorRecord",
+    "VectorSearchFilters",
+    "VectorSearchHit",
+    "VectorStore",
     "chunk_document",
     "detect_changes",
 ]

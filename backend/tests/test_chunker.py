@@ -3,6 +3,8 @@ from app.parsers.base import PageMapEntry, ParsedSection, ParseResult
 
 
 def test_chunker_uses_markdown_heading_path() -> None:
+    """验证 Markdown 分块会保留标题层级路径。"""
+
     parse_result = ParseResult(
         title="RAG 笔记",
         text="",
@@ -27,6 +29,8 @@ def test_chunker_uses_markdown_heading_path() -> None:
 
 
 def test_chunker_splits_long_plain_text_by_paragraph_and_length() -> None:
+    """验证普通长文本会按段落和长度约束切分。"""
+
     parse_result = ParseResult(
         title="长文本",
         text=(
@@ -46,6 +50,8 @@ def test_chunker_splits_long_plain_text_by_paragraph_and_length() -> None:
 
 
 def test_chunker_preserves_pdf_page_numbers() -> None:
+    """验证 PDF 分块会保留页码信息，方便来源引用。"""
+
     parse_result = ParseResult(
         title="PDF",
         text="page one text\n\npage two text",
@@ -64,6 +70,8 @@ def test_chunker_preserves_pdf_page_numbers() -> None:
 
 
 def test_chunker_skips_empty_sections_and_empty_text() -> None:
+    """验证空章节和空正文不会生成无效 chunk。"""
+
     parse_result = ParseResult(
         title="空文档",
         text="",

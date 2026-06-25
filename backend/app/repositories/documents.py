@@ -67,6 +67,19 @@ class DocumentRepository:
         """按主键查询文档；不存在时返回 None。"""
         return self.session.get(Document, document_id)
 
+    def get_chunk(self, chunk_id: int) -> Optional[Chunk]:
+        """按主键查询 chunk；不存在时返回 None。"""
+        return self.session.get(Chunk, chunk_id)
+
+    def list_chunks(self, document_id: int) -> List[Chunk]:
+        """按文档顺序列出全部 chunk，供详情接口返回来源片段。"""
+        return (
+            self.session.query(Chunk)
+            .filter(Chunk.document_id == document_id)
+            .order_by(Chunk.chunk_index)
+            .all()
+        )
+
     def update_document_status(self, document_id: int, status: str) -> Optional[Document]:
         """更新文档状态，例如把缺失文件标记为 deleted。"""
         document = self.get_document(document_id)

@@ -10,6 +10,8 @@ from app.repositories.sources import SourceRepository
 
 
 def make_session():
+    """创建测试用内存数据库会话，并加载索引相关模型表。"""
+
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine)
@@ -17,6 +19,8 @@ def make_session():
 
 
 def create_chunk(session, text, source_name="测试资料", title="note"):
+    """创建带所属数据源和文档的测试 chunk。"""
+
     source = SourceRepository(session).create(
         source_type="local_directory",
         name=source_name,
@@ -44,6 +48,8 @@ def create_chunk(session, text, source_name="测试资料", title="note"):
 
 
 def test_sqlite_fts_indexes_chunks_and_returns_snippet() -> None:
+    """验证 SQLite FTS 可以索引 chunk 并返回高亮摘要。"""
+
     session = make_session()
     _, document, chunk = create_chunk(
         session,
@@ -62,6 +68,8 @@ def test_sqlite_fts_indexes_chunks_and_returns_snippet() -> None:
 
 
 def test_sqlite_fts_supports_basic_chinese_keyword_and_source_filter() -> None:
+    """验证 SQLite FTS 支持基础中文关键词和数据源过滤。"""
+
     session = make_session()
     first_source, _, first_chunk = create_chunk(
         session,
@@ -85,6 +93,8 @@ def test_sqlite_fts_supports_basic_chinese_keyword_and_source_filter() -> None:
 
 
 def test_sqlite_fts_replaces_existing_chunk_text() -> None:
+    """验证重复索引同一 chunk 时会替换旧文本。"""
+
     session = make_session()
     _, _, chunk = create_chunk(session, "旧内容 legacy keyword")
     lexical_index = SQLiteFtsIndex(session)
@@ -99,6 +109,8 @@ def test_sqlite_fts_replaces_existing_chunk_text() -> None:
 
 
 def test_sqlite_fts_delete_document_removes_hits() -> None:
+    """验证删除文档索引后不再返回相关关键词命中。"""
+
     session = make_session()
     _, document, chunk = create_chunk(session, "delete target keyword")
     lexical_index = SQLiteFtsIndex(session)

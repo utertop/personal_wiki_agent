@@ -9,6 +9,8 @@ from app.repositories.sources import SourceRepository
 
 
 def make_session():
+    """创建测试用内存数据库会话，并初始化 ORM 表结构。"""
+
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine)
@@ -16,6 +18,8 @@ def make_session():
 
 
 def test_source_document_and_chunk_round_trip() -> None:
+    """验证数据源、文档和 chunk 可以完成基础写入与读取闭环。"""
+
     session = make_session()
     source_repo = SourceRepository(session)
     document_repo = DocumentRepository(session)
@@ -52,6 +56,8 @@ def test_source_document_and_chunk_round_trip() -> None:
 
 
 def test_repositories_update_source_and_document_status() -> None:
+    """验证 repository 可以更新数据源信息和文档状态。"""
+
     session = make_session()
     source_repo = SourceRepository(session)
     document_repo = DocumentRepository(session)
@@ -82,6 +88,8 @@ def test_repositories_update_source_and_document_status() -> None:
 
 
 def test_memory_is_stored_separately_from_document_chunks() -> None:
+    """验证长期记忆与文档 chunk 使用独立数据表存储。"""
+
     session = make_session()
     memory = Memory(
         memory_type="user_preference",

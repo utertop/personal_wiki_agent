@@ -530,11 +530,19 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `Embedder.embed_texts(texts) -> list[EmbeddingResult]`。
-- [ ] 定义 `VectorStore.upsert()`、`VectorStore.search()`、`VectorStore.delete_document()`。
-- [ ] 第一版实现内存型或 SQLite 文件型测试 adapter。
-- [ ] 将真实 Chroma / LanceDB / Qdrant / sqlite-vec 留在后续选择中。
-- [ ] 测试接口契约。
+- [x] 定义 `Embedder.embed_texts(texts) -> list[EmbeddingResult]`。
+- [x] 定义 `VectorStore.upsert()`、`VectorStore.search()`、`VectorStore.delete_document()`。
+- [x] 第一版实现内存型或 SQLite 文件型测试 adapter。
+- [x] 将真实 Chroma / LanceDB / Qdrant / sqlite-vec 留在后续选择中。
+- [x] 测试接口契约。
+
+执行记录：
+
+- 分支：`main`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_vector_store_contract.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing.embedding'`。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 产出：新增 `Embedder`、`EmbeddingResult`、`HashingEmbedder`、`VectorStore`、`VectorRecord`、`VectorSearchFilters`、`VectorSearchHit`、`InMemoryVectorStore` 和 `test_vector_store_contract.py`。
+- 边界：`HashingEmbedder` 只是用于本地测试和接口闭环的确定性向量实现，不代表真实语义 embedding；真实 Chroma、LanceDB、Qdrant、sqlite-vec 和模型 embedding 接入留给后续任务。
 
 **验收标准：**
 
@@ -566,12 +574,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 provider 抽象。
-- [ ] 支持 OpenAI-compatible provider 的配置形态。
-- [ ] 支持 Ollama provider 的配置形态。
-- [ ] 实现模型 catalog 缓存结构。
-- [ ] 实现按 `chat`、`embedding`、`summary` 任务选择模型。
-- [ ] 测试未配置 key、配置错误、默认模型选择。
+- [x] 定义 provider 抽象。
+- [x] 支持 OpenAI-compatible provider 的配置形态。
+- [x] 支持 Ollama provider 的配置形态。
+- [x] 实现模型 catalog 缓存结构。
+- [x] 实现按 `chat`、`embedding`、`summary` 任务选择模型。
+- [x] 测试未配置 key、配置错误、默认模型选择。
+
+执行记录：
+
+- 分支：`main`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_model_registry.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.llm'`。
+- 绿灯：同一命令通过，结果为 `6 passed`。
+- 产出：新增 `ModelProvider`、`ProviderConfig`、`ModelInfo`、`CredentialStatus`、`ChatModelClient`、`EmbeddingModelClient`、`ModelCatalog`、`ModelRegistry`、`ModelRouter`、`OpenAICompatibleProvider`、`OllamaProvider` 和 `test_model_registry.py`。
+- 边界：Task 12 只完成 provider 配置、模型 catalog 和任务路由闭环；暂不进行真实 OpenAI-compatible 或 Ollama HTTP 调用，真实模型调用留给后续 API / Answer 模块接入。
 
 **验收标准：**
 
@@ -598,12 +614,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义检索请求模型，支持 query、source_id、file_type、time_range、top_k。
-- [ ] 调用 `LexicalIndex` 做关键词召回。
-- [ ] 在可用时调用 `VectorStore` 做语义召回。
-- [ ] 合并、去重、排序。
-- [ ] 返回 document、chunk、score、引用定位。
-- [ ] 测试关键词命中、过滤、空结果。
+- [x] 定义检索请求模型，支持 query、source_id、file_type、time_range、top_k。
+- [x] 调用 `LexicalIndex` 做关键词召回。
+- [x] 在可用时调用 `VectorStore` 做语义召回。
+- [x] 合并、去重、排序。
+- [x] 返回 document、chunk、score、引用定位。
+- [x] 测试关键词命中、过滤、空结果。
+
+执行记录：
+
+- 分支：`main`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_hybrid_retriever.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.retrieval'`。
+- 绿灯：同一命令通过，结果为 `4 passed`。
+- 产出：新增 `SearchQuery`、`HybridRetriever`、`SearchResult`、`SourceCitation`、`combine_scores` 和 `test_hybrid_retriever.py`。
+- 边界：Task 13 只实现检索层内部契约，不暴露 HTTP API；文件类型和时间范围先保留在 `SearchQuery` 中，底层过滤能力在后续 Search API / repository 查询增强时继续接入。
 
 **验收标准：**
 
@@ -628,11 +652,18 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 实现 `POST /search`。
-- [ ] 实现 document 详情接口。
-- [ ] 实现 chunk 详情接口。
-- [ ] 返回 citations、metadata、source 信息。
-- [ ] 测试正常搜索、空搜索、非法过滤条件。
+- [x] 实现 `POST /search`。
+- [x] 实现 document 详情接口。
+- [x] 实现 chunk 详情接口。
+- [x] 返回 citations、metadata、source 信息。
+- [x] 测试正常搜索、空搜索、非法过滤条件。
+
+**完成记录：**
+
+- 产出：新增 `routes_search.py`、`routes_documents.py` 和 `test_search_api.py`。
+- 搜索接口通过 `HybridRetriever` + `SQLiteFtsIndex` 暴露关键词优先的检索能力；暂未接入持久化向量库，因此没有向量库时仍可工作。
+- 详情接口返回 document、chunk、source 和 metadata，供前端、Chat API 和后续 Agent 工具打开来源。
+- 边界：Task 14 只提供检索和来源详情 API，不生成自然语言回答；回答合成、上下文构造和 memory 注入留给 Task 15。
 
 **验收标准：**
 
@@ -657,11 +688,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义回答输出结构：`answer`、`citations`、`confidence`、`retrieval_summary`。
-- [ ] 构造上下文时保留 chunk 来源和文档元数据。
-- [ ] 当检索结果不足时返回“没有找到可靠来源”的明确说明。
-- [ ] 接入 `ModelRouter` 调用 chat 模型。
-- [ ] 使用 fake model client 编写稳定测试。
+- [x] 定义回答输出结构：`answer`、`citations`、`confidence`、`retrieval_summary`。
+- [x] 构造上下文时保留 chunk 来源和文档元数据。
+- [x] 当检索结果不足时返回“没有找到可靠来源”的明确说明。
+- [x] 接入 `ModelRouter` 调用 chat 模型。
+- [x] 使用 fake model client 编写稳定测试。
+
+**完成记录：**
+
+- 产出：新增 `answer/context_builder.py`、`answer/synthesizer.py`、`routes_chat.py` 和 `test_chat_api.py`。
+- Chat API 通过检索层获取可追溯来源，再构造 `AnswerContext`，最后由 `AnswerSynthesizer` 调用 chat model client 生成回答。
+- 回答引用只来自检索上下文中的 citations，不从模型输出里反向猜测，避免伪造来源。
+- 没有可靠来源时直接返回“没有找到可靠来源”，不会调用模型，也不会生成空引用。
+- 有可靠来源但未配置 `ModelRouter` 或模型客户端不可用时，返回结构化 503 错误，便于前端提示用户配置模型。
+- 边界：Task 15 只完成回答合成和 Chat API 闭环；memory 个性化上下文仍留给 Task 17，Agent 工具封装留给 Task 16。
 
 **验收标准：**
 
