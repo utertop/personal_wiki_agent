@@ -61,6 +61,7 @@ def upgrade() -> None:
         sa.Column("finished_at", sa.DateTime(), nullable=True),
         sa.Column("total_items", sa.Integer(), nullable=False),
         sa.Column("processed_items", sa.Integer(), nullable=False),
+        sa.Column("failed_items", sa.Integer(), nullable=False),
         sa.Column("error_message", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),

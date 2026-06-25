@@ -865,6 +865,7 @@ started_at
 finished_at
 total_items
 processed_items
+failed_items
 error_message
 created_at
 updated_at

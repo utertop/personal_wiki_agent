@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -58,3 +58,12 @@ class SourceRepository:
         self.session.commit()
         self.session.refresh(source)
         return source
+
+    def list_enabled(self) -> List[Source]:
+        """列出所有启用的数据源，供批量索引任务遍历。"""
+        return (
+            self.session.query(Source)
+            .filter(Source.enabled.is_(True))
+            .order_by(Source.source_id)
+            .all()
+        )

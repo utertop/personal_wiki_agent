@@ -17,6 +17,7 @@ class IndexJob(Base):
     finished_at = Column(DateTime, nullable=True)
     total_items = Column(Integer, nullable=False, default=0)
     processed_items = Column(Integer, nullable=False, default=0)
+    failed_items = Column(Integer, nullable=False, default=0)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)

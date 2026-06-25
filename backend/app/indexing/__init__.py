@@ -9,6 +9,12 @@ from app.indexing.sync import (
     MovedDocumentCandidate,
     detect_changes,
 )
+from app.indexing.pipeline import (
+    IndexingPipeline,
+    PipelineResult,
+    UnsupportedConnectorError,
+    UnsupportedParserError,
+)
 
 __all__ = [
     "ChunkInput",
@@ -17,8 +23,12 @@ __all__ = [
     "ChangeSet",
     "DeletedDocumentChange",
     "DocumentSnapshot",
+    "IndexingPipeline",
     "MatchedDocumentChange",
     "MovedDocumentCandidate",
+    "PipelineResult",
+    "UnsupportedConnectorError",
+    "UnsupportedParserError",
     "chunk_document",
     "detect_changes",
 ]

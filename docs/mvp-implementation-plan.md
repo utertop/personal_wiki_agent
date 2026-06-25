@@ -446,13 +446,22 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 创建 `IndexJob` 记录。
-- [ ] 扫描 source。
-- [ ] 判断变更。
-- [ ] 对新增和更新文档执行解析和分块。
-- [ ] 写入 document 和 chunk。
-- [ ] 记录处理数量、失败数量和错误消息。
-- [ ] 支持失败重试。
+- [x] 创建 `IndexJob` 记录。
+- [x] 扫描 source。
+- [x] 判断变更。
+- [x] 对新增和更新文档执行解析和分块。
+- [x] 写入 document 和 chunk。
+- [x] 记录处理数量、失败数量和错误消息。
+- [x] 支持失败重试。
+
+执行记录：
+
+- 分支：`main`。
+- 红灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_indexing_pipeline.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing.pipeline'`。
+- 绿灯：同一命令通过，结果为 `5 passed`。
+- 回归：`.\.venv\Scripts\python.exe -m pytest backend/tests -v` 通过，结果为 `34 passed`。
+- 产出：新增 `IndexingPipeline`、`IndexJobRepository` 和 `test_indexing_pipeline.py`，补充 `DocumentRepository` / `SourceRepository` 所需查询与更新方法。
+- 边界：Task 9 只写入 SQLite 元数据和 chunk，不直接写入 FTS5 或向量索引；失败重试在 MVP 阶段通过重新运行 source 索引实现，单文件失败会记录到 `IndexJob.failed_items` 和 `error_message`。
 
 **验收标准：**
 
