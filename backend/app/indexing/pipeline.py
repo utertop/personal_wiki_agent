@@ -10,7 +10,9 @@ from app.connectors.local_synced_notes import LocalSyncedNotesConnector
 from app.connectors.obsidian_vault import ObsidianVaultConnector
 from app.core.settings import SourceConfig
 from app.indexing.chunker import ChunkInput, Chunker
+from app.indexing.lexical import LexicalIndex
 from app.indexing.sync import MatchedDocumentChange, detect_changes
+from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.index_job import IndexJob
 from app.models.source import Source
@@ -49,6 +51,7 @@ class IndexingPipeline:
         session: Session,
         parsers: Optional[Sequence[ParserAdapter]] = None,
         chunker: Optional[Chunker] = None,
+        lexical_index: Optional[LexicalIndex] = None,
         connector_types: Optional[Dict[str, Type[Connector]]] = None,
     ) -> None:
         """初始化索引流水线依赖，允许测试或后续云端 connector 注入替换实现。"""
@@ -58,6 +61,7 @@ class IndexingPipeline:
         self.jobs = IndexJobRepository(session)
         self.parsers = list(parsers or _default_parsers())
         self.chunker = chunker or Chunker()
+        self.lexical_index = lexical_index
         self.connector_types = connector_types or _default_connector_types()
 
     def run_source_index(self, source_id: int) -> IndexJob:
@@ -78,6 +82,8 @@ class IndexingPipeline:
             errors = list(sync_result.errors)
 
             for deleted_change in changes.deleted:
+                if self.lexical_index is not None:
+                    self.lexical_index.delete_document(deleted_change.existing.document_id)
                 self.documents.update_document_status(
                     deleted_change.existing.document_id,
                     deleted_change.target_status,
@@ -131,7 +137,8 @@ class IndexingPipeline:
                 mime_type=item.mime_type,
                 metadata_json=_document_metadata(item, parse_result),
             )
-            self._write_chunks(document.document_id, parse_result)
+            chunks = self._write_chunks(document.document_id, parse_result)
+            self._index_lexical_chunks(chunks)
             return PipelineResult(document=document)
         except UnsupportedParserError as error:
             return PipelineResult(document=None, error=str(error))
@@ -152,24 +159,37 @@ class IndexingPipeline:
             if document is None:
                 return PipelineResult(document=None, error=f"document_not_found: {change.existing.document_id}")
 
+            if self.lexical_index is not None:
+                self.lexical_index.delete_document(document.document_id)
             self.documents.delete_chunks(document.document_id)
-            self._write_chunks(document.document_id, parse_result)
+            chunks = self._write_chunks(document.document_id, parse_result)
+            self._index_lexical_chunks(chunks)
             return PipelineResult(document=document)
         except UnsupportedParserError as error:
             return PipelineResult(document=None, error=str(error))
 
-    def _write_chunks(self, document_id: int, parse_result: ParseResult) -> None:
+    def _write_chunks(self, document_id: int, parse_result: ParseResult) -> List[Chunk]:
         """把 ParseResult 切分后的 chunk 写入数据库，空文本文件允许没有 chunk。"""
+        chunks: List[Chunk] = []
         for chunk in self.chunker.chunk(ChunkInput(parse_result=parse_result, document_id=document_id)):
-            self.documents.create_chunk(
-                document_id=document_id,
-                chunk_index=chunk.chunk_index,
-                text=chunk.text,
-                heading_path=chunk.heading_path,
-                page_number=chunk.page_number,
-                token_count=chunk.token_count,
-                metadata_json=chunk.metadata,
+            chunks.append(
+                self.documents.create_chunk(
+                    document_id=document_id,
+                    chunk_index=chunk.chunk_index,
+                    text=chunk.text,
+                    heading_path=chunk.heading_path,
+                    page_number=chunk.page_number,
+                    token_count=chunk.token_count,
+                    metadata_json=chunk.metadata,
+                )
             )
+        return chunks
+
+    def _index_lexical_chunks(self, chunks: Sequence[Chunk]) -> None:
+        """当配置了关键词索引时，把新写入的 chunk 同步到 LexicalIndex。"""
+        if self.lexical_index is None or not chunks:
+            return
+        self.lexical_index.index_chunks(chunks)
 
     def _parse_item(self, item: DiscoveredItem) -> ParseResult:
         """为扫描条目选择匹配 parser 并执行解析，不支持的文件会抛出可记录错误。"""

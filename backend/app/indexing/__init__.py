@@ -1,6 +1,7 @@
 """Indexing workflow helpers."""
 
 from app.indexing.chunker import ChunkInput, ChunkOutput, Chunker, chunk_document
+from app.indexing.lexical import LexicalIndex, SearchFilters, SearchHit
 from app.indexing.sync import (
     ChangeSet,
     DeletedDocumentChange,
@@ -24,9 +25,12 @@ __all__ = [
     "DeletedDocumentChange",
     "DocumentSnapshot",
     "IndexingPipeline",
+    "LexicalIndex",
     "MatchedDocumentChange",
     "MovedDocumentCandidate",
     "PipelineResult",
+    "SearchFilters",
+    "SearchHit",
     "UnsupportedConnectorError",
     "UnsupportedParserError",
     "chunk_document",

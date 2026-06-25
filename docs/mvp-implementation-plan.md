@@ -488,12 +488,22 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 定义 `LexicalIndex` 抽象接口。
-- [ ] 创建 SQLite FTS5 表。
-- [ ] 将 chunk 写入 FTS5。
-- [ ] 实现关键词搜索。
-- [ ] 返回 chunk_id、document_id、score、snippet。
-- [ ] 测试中文和英文关键词基础命中。
+- [x] 定义 `LexicalIndex` 抽象接口。
+- [x] 创建 SQLite FTS5 表。
+- [x] 将 chunk 写入 FTS5。
+- [x] 实现关键词搜索。
+- [x] 返回 chunk_id、document_id、score、snippet。
+- [x] 测试中文和英文关键词基础命中。
+
+执行记录：
+
+- 分支：`main`。
+- 红灯 1：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_sqlite_fts.py -v` 首次失败于 `ModuleNotFoundError: No module named 'app.indexing.lexical'`。
+- 红灯 2：新增 Pipeline 集成测试后，`.\.venv\Scripts\python.exe -m pytest backend/tests/test_indexing_pipeline.py -v` 失败于 `IndexingPipeline.__init__()` 不支持 `lexical_index` 参数。
+- 绿灯：`.\.venv\Scripts\python.exe -m pytest backend/tests/test_sqlite_fts.py -v` 通过，结果为 `4 passed`；`.\.venv\Scripts\python.exe -m pytest backend/tests/test_indexing_pipeline.py -v` 通过，结果为 `7 passed`。
+- 产出：新增 `LexicalIndex`、`SearchFilters`、`SearchHit`、`SQLiteFtsIndex` 和 `test_sqlite_fts.py`。
+- 集成：`IndexingPipeline` 支持可选注入 `LexicalIndex`，配置后新增 / 更新 chunk 会写入关键词索引，文档删除会清理对应 FTS 命中。
+- 边界：SQLite FTS5 表由 `SQLiteFtsIndex.ensure_schema()` 创建；MVP 阶段使用 SQLite `unicode61` tokenizer，中文基础命中依赖文本中存在可分隔词，后续中文分词和更强搜索引擎仍按演进路线处理。
 
 **验收标准：**
 

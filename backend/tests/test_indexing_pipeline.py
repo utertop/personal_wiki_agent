@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from app import models  # noqa: F401
 from app.db.base import Base
 from app.indexing.pipeline import IndexingPipeline
+from app.indexing.sqlite_fts import SQLiteFtsIndex
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.repositories.sources import SourceRepository
@@ -122,3 +123,32 @@ def test_pipeline_runs_all_enabled_sources(tmp_path) -> None:
     assert all(job.status == "completed" for job in jobs)
     assert session.query(Document).count() == 2
     assert session.query(Chunk).count() == 2
+
+
+def test_pipeline_writes_chunks_to_lexical_index_when_configured(tmp_path) -> None:
+    note = tmp_path / "searchable.md"
+    note.write_text("# Searchable\n\n关键词 检索 内容", encoding="utf-8")
+    session = make_session()
+    source = create_local_source(session, tmp_path)
+    lexical_index = SQLiteFtsIndex(session)
+
+    IndexingPipeline(session, lexical_index=lexical_index).run_source_index(source.source_id)
+
+    hits = lexical_index.search("检索")
+    assert len(hits) == 1
+    assert hits[0].document_id == session.query(Document).one().document_id
+
+
+def test_pipeline_removes_lexical_hits_for_deleted_documents(tmp_path) -> None:
+    note = tmp_path / "delete-search.md"
+    note.write_text("# Delete Search\n\n删除后 不应 命中", encoding="utf-8")
+    session = make_session()
+    source = create_local_source(session, tmp_path)
+    lexical_index = SQLiteFtsIndex(session)
+    pipeline = IndexingPipeline(session, lexical_index=lexical_index)
+
+    pipeline.run_source_index(source.source_id)
+    note.unlink()
+    pipeline.run_source_index(source.source_id)
+
+    assert lexical_index.search("命中") == []
