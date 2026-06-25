@@ -33,6 +33,7 @@ class AnswerContext:
 
     items: List[AnswerContextItem]
     total_results: int
+    personalization_memories: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def has_reliable_sources(self) -> bool:

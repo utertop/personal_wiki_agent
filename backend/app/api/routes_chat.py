@@ -1,6 +1,6 @@
 import re
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,6 +13,7 @@ from app.db.session import get_db_session
 from app.indexing.sqlite_fts import SQLiteFtsIndex
 from app.llm.provider import ProviderConfigurationError
 from app.llm.router import ModelRoutingError
+from app.memory.extractor import attach_memories_to_context, memories_to_context, select_memories_for_chat
 from app.retrieval.filters import SearchQuery
 from app.retrieval.hybrid import HybridRetriever
 
@@ -41,6 +42,19 @@ class RetrievalSummaryResponse(BaseModel):
     has_reliable_sources: bool
 
 
+class MemoryUsedResponse(BaseModel):
+    """描述 Chat API 实际用于个性化回答的一条长期记忆。"""
+
+    memory_id: int
+    memory_type: str
+    content: str
+    source: str
+    confidence: float
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    expires_at: Optional[str] = None
+
+
 class ChatResponse(BaseModel):
     """描述 Chat API 响应，回答必须和 citations、retrieval_summary 一起返回。"""
 
@@ -49,6 +63,7 @@ class ChatResponse(BaseModel):
     confidence: float
     retrieval_summary: RetrievalSummaryResponse
     model: Optional[str] = None
+    memories_used: List[MemoryUsedResponse] = Field(default_factory=list)
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -67,6 +82,9 @@ def chat(
     if model_router is None:
         raise _chat_configuration_error("chat_model_not_configured")
 
+    memories = select_memories_for_chat(session)
+    memory_context = memories_to_context(memories)
+    context = attach_memories_to_context(context, memories)
     try:
         selection = model_router.select_model("chat")
         model_client = selection.provider.get_chat_client(selection.model.model_id)
@@ -76,7 +94,7 @@ def chat(
         ).generate(request.message, context)
     except (AnswerSynthesisError, ModelRoutingError, ProviderConfigurationError) as error:
         raise _chat_configuration_error(str(error)) from error
-    return _answer_response(answer)
+    return _answer_response(answer, memories_used=memory_context)
 
 
 def _search_for_chat(session: Session, request: ChatRequest) -> List[SearchResultResponse]:
@@ -112,7 +130,10 @@ def _chat_search_query(message: str) -> str:
     return " ".join(keyword_tokens) if keyword_tokens else message
 
 
-def _answer_response(answer: Answer) -> ChatResponse:
+def _answer_response(
+    answer: Answer,
+    memories_used: Optional[Sequence[Dict[str, Any]]] = None,
+) -> ChatResponse:
     """把 Answer dataclass 转换为 FastAPI 响应模型。"""
     return ChatResponse(
         answer=answer.answer,
@@ -130,6 +151,10 @@ def _answer_response(answer: Answer) -> ChatResponse:
         confidence=answer.confidence,
         retrieval_summary=RetrievalSummaryResponse(**asdict(answer.retrieval_summary)),
         model=answer.model,
+        memories_used=[
+            MemoryUsedResponse(**memory)
+            for memory in (memories_used or [])
+        ],
     )
 
 

@@ -730,11 +730,20 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] `search_notes` 调用 `HybridRetriever`。
-- [ ] `open_source` 调用 document / chunk repository。
-- [ ] `summarize_folder` 基于 source 下的检索结果和 Answer 模块生成摘要。
-- [ ] `build_topic_map` 第一版生成主题列表、相关文档和引用，不做复杂图谱。
-- [ ] 编写工具层测试。
+- [x] `search_notes` 调用 `HybridRetriever`。
+- [x] `open_source` 调用 document / chunk repository。
+- [x] `summarize_folder` 基于 source 下的检索结果和 Answer 模块生成摘要。
+- [x] `build_topic_map` 第一版生成主题列表、相关文档和引用，不做复杂图谱。
+- [x] 编写工具层测试。
+
+**完成记录：**
+
+- 产出：新增 `agent_tools/search_notes.py`、`agent_tools/open_source.py`、`agent_tools/summarize_folder.py`、`agent_tools/build_topic_map.py` 和 `test_agent_tools.py`。
+- `search_notes` 复用 `HybridRetriever` 与 `SQLiteFtsIndex`，返回和 Search API 一致的可追溯检索结果。
+- `open_source` 支持按 `document_id` 或 `chunk_id` 打开来源详情，工具调用方不需要直接访问 repository。
+- `summarize_folder` 基于数据源下的 chunk 构造 `AnswerContext`，再复用 `AnswerSynthesizer` 生成带引用摘要；没有外部模型时提供本地抽取式 fallback，保证 MVP 可运行。
+- `build_topic_map` 第一版按 heading 或文档标题聚合主题、相关文档和引用，不做复杂图谱计算。
+- 边界：Task 16 只完成 Agent 可调用工具层，不新增 HTTP API，不引入长期记忆；memory 个性化仍留给 Task 17。
 
 **验收标准：**
 
@@ -761,11 +770,19 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 实现 memory CRUD。
-- [ ] 支持 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
-- [ ] 支持 confidence、source、created_at、updated_at、expires_at。
-- [ ] Chat API 中只把 memory 作为个性化上下文，不作为文档来源引用。
-- [ ] 编写 memory 与 document 分离测试。
+- [x] 实现 memory CRUD。
+- [x] 支持 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
+- [x] 支持 confidence、source、created_at、updated_at、expires_at。
+- [x] Chat API 中只把 memory 作为个性化上下文，不作为文档来源引用。
+- [x] 编写 memory 与 document 分离测试。
+
+**完成记录：**
+
+- 最终契约无变更：`POST /memory` 请求体为 `{memory_type, content, source, confidence?, expires_at?}`，返回单条 memory。
+- `GET /memory?query=&memory_type=&limit=` 返回 `{items:[...]}`，只包含 active 且未过期的 memory。
+- `POST /chat` 响应新增 `memories_used: []`，明确区分文档来源 `citations` 和长期记忆。
+- 支持的 `memory_type` 为 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
+- 验证结果：`backend/tests/test_memory.py` 6 passed，`backend/tests/test_chat_api.py` 4 passed；Task 19 复验全量 `backend/tests` 为 76 passed。
 
 **验收标准：**
 
@@ -799,14 +816,22 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 初始化 React + Vite + TypeScript。
-- [ ] 建立 API client。
-- [ ] 实现对话输入和回答展示。
-- [ ] 展示 citations。
-- [ ] 点击 citation 打开来源详情抽屉。
-- [ ] 展示工具活动流。
-- [ ] 数据源和索引状态先做只读视图。
+- [x] 初始化 React + Vite + TypeScript。
+- [x] 建立 API client。
+- [x] 实现对话输入和回答展示。
+- [x] 展示 citations。
+- [x] 点击 citation 打开来源详情抽屉。
+- [x] 展示工具活动流。
+- [x] 数据源和索引状态先做只读视图。
 - [ ] 用 Playwright 或浏览器手动验证主要流程。
+
+**当前记录：**
+
+- `frontend/` 已提供对话式 Agent 工作台。
+- 前端测试已覆盖 API client、工具活动流和对话视图。
+- 前端 TypeScript 类型检查已通过。
+- 前端生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境复验。
+- 浏览器端到端手动验收未保留常驻 dev server，后续联调 Source / Index API 时继续补充。
 
 **验收标准：**
 
@@ -878,16 +903,16 @@ MVP 完成后，用户应该能做到：
 | 记忆和文档混淆 | memory 被当作知识库来源引用 | 区分 `citations` 和 `memories_used`，存储和检索分离 |
 | 本地资料误上传 | Export / Mirror 默认写回云端 | 默认不上传，写回前必须用户显式确认 |
 
-## 9. 第一阶段建议开工顺序
+## 9. 当前阶段建议推进顺序
 
-下一步优先开工 Task 1 到 Task 4：
+截至 Task 18 / Task 19 文档体检，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过前端单元测试和 TypeScript 类型检查。生产构建输出写入需要在普通本地环境复验。
 
-1. Task 1：项目工程骨架。
-2. Task 2：配置系统。
-3. Task 3：数据库与核心模型。
-4. Task 4：Alembic 迁移。
+下一步优先推进：
 
-这四个任务完成后，项目就具备稳定地基：能启动、能测试、能配置、能建库、能演进 schema。随后再进入本地 connector、parser 和索引闭环。
+1. 索引管理 API：将当前内部 `IndexingPipeline` 封装为 `POST /index/run` 和 `GET /index/jobs`，供 Web UI 调用。
+2. Source 管理 API：补齐 `GET /sources` 和 `POST /sources`，让配置文件、数据库 source 与 UI 入口对齐。
+3. Web UI 联调：把数据源页和索引任务页从只读视图接入真实 API。
+4. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，补充浏览器手动验证和真实本地目录验证结果。
 
 ## 10. 阶段验收门
 

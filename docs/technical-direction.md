@@ -202,6 +202,30 @@ MVP 不做：
 - 完整移动端
 - 直接复制 Khoj / Onyx / Quivr / Mem0 的代码结构
 
+### 4.1 当前实现状态（Task 18 / Task 19 体检）
+
+截至 Task 18 / Task 19 文档体检，当前仓库已经落地 MVP 后端主干能力、Memory API 和对话式 Web UI。后端测试、前端单元测试和前端 TypeScript 类型检查均已有通过结果；生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境复验。
+
+已实现并有测试覆盖的能力包括：
+
+- FastAPI 应用骨架与 `GET /health`。
+- `config/sources.example.yaml` 配置契约与 `AppSettings` 读取。
+- SQLite 元数据模型、Alembic 初始迁移和 repository 基础能力。
+- 本地目录、笔记本地同步目录、Obsidian vault connector。
+- 增量同步判断、Markdown / txt / PDF / docx / HTML parser、chunker、索引流水线。
+- SQLite FTS5 关键词索引、`VectorStore` 接口、`ModelProvider` / `ModelRegistry` / `ModelRouter` 契约。
+- `HybridRetriever`、`POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}`。
+- `POST /chat` 的检索上下文、来源引用、无可靠来源保护和模型配置错误处理。
+- `GET /memory`、`POST /memory`，以及 Chat 响应中的 `memories_used`。
+- `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 四个 Agent Tools。
+- `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包括对话页、引用抽屉、工具活动流、数据源只读入口和索引任务只读入口。
+
+仍需后续补齐或增强的能力包括：
+
+- `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 的 HTTP 路由。
+- Web UI 与真实后端数据源、索引任务和浏览器端到端流程的联调验收。
+- 真实模型 provider HTTP 调用、真实 embedding 和持久化向量库。
+
 ## 5. 初始技术选型
 
 ### 5.1 后端
@@ -399,17 +423,14 @@ Notion 的 API 相对清晰，可以作为后续云端 connector 的参考样板
 
 ## 9. 下一步
 
-下一步应创建项目骨架和核心数据模型，而不是继续扩展功能清单。
+当前下一步不是重新创建项目骨架，也不是继续扩大前端页面，而是把后端索引管理入口补齐到可被 Web UI 调用的形态，并用真实本地目录做端到端联调。
 
-建议优先实现：
+建议优先处理：
 
-1. `config`：声明多个本地目录、忽略规则和模型配置。
-2. `connectors`：本地目录与笔记 App 本地同步目录扫描。
-3. `parsers`：Markdown / txt / PDF / docx / HTML。
-4. `indexing`：chunk、metadata、embedding 接口。
-5. `retrieval`：hybrid search 接口。
-6. `agent_tools`：最小工具集。
-7. `api`：检索和问答接口。
+1. 为数据源和索引任务补齐 HTTP API，至少覆盖 `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs`。
+2. 将 Web UI 的数据源页和索引任务页从只读占位接入真实 API。
+3. 用真实本地目录执行一次端到端验证：配置 source、索引、搜索、问答、打开来源、使用记忆。
+4. 补充浏览器手动验收结果，并按 [mvp-acceptance-report.md](mvp-acceptance-report.md) 更新验收记录。
 
 ## 10. 相关文档
 
@@ -421,3 +442,4 @@ Notion 的 API 相对清晰，可以作为后续云端 connector 的参考样板
 - [conversational-agent-ui.md](conversational-agent-ui.md)：对话式 Agent UI 的信息架构、界面约束、知识 Agent 控件和验收标准。
 - [note-import-export-strategy.md](note-import-export-strategy.md)：笔记导入导出、跨平台迁移、标准迁移包、格式边界和 adapter 设计。
 - [mvp-implementation-plan.md](mvp-implementation-plan.md)：MVP 实施计划、任务拆解、阶段验收门和每周追踪模板。
+- [mvp-acceptance-report.md](mvp-acceptance-report.md)：MVP 当前验收结果、风险和后续动作。
