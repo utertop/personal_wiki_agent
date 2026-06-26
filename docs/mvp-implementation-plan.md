@@ -782,7 +782,7 @@ MVP 完成后，用户应该能做到：
 - `GET /memory?query=&memory_type=&limit=` 返回 `{items:[...]}`，只包含 active 且未过期的 memory。
 - `POST /chat` 响应新增 `memories_used: []`，明确区分文档来源 `citations` 和长期记忆。
 - 支持的 `memory_type` 为 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
-- 验证结果：`backend/tests/test_memory.py` 6 passed，`backend/tests/test_chat_api.py` 4 passed；Task 20 复验全量 `backend/tests` 为 81 passed。
+- 验证结果：`backend/tests/test_memory.py` 6 passed，`backend/tests/test_chat_api.py` 5 passed；本次复验全量 `backend/tests` 为 83 passed。
 
 **验收标准：**
 
@@ -834,6 +834,7 @@ MVP 完成后，用户应该能做到：
 - 前端 TypeScript 类型检查已通过。
 - Playwright UI 主流程验收已通过，覆盖默认 Chat 页面、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。
 - 本次 Playwright 验收使用浏览器路由 mock API 响应，用于验证前端主流程；真实后端浏览器 E2E 仍需在普通本地环境或后续 CI 环境补充。
+- 后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，并通过 `backend/tests/test_cors.py` 回归验证；真实后端浏览器 E2E 本次被当前执行环境拦截，仍未标为完成。
 - 前端生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
 
 **验收标准：**
@@ -998,7 +999,7 @@ MVP 完成后，用户应该能做到：
 
 ## 9. 当前阶段建议推进顺序
 
-截至 Task 21 文档体检，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
+截至本次复验，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI。后端已补充本地 Vite Web UI CORS 和 Chat 英文自然问句弱词过滤回归。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
 
 下一步优先推进：
 

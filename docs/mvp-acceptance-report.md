@@ -8,7 +8,7 @@
 
 - Task 1 到 Task 17 的后端主干能力已有实现和测试覆盖。
 - Task 17 Memory API 已按最终契约完成：`POST /memory` 创建记忆，`GET /memory` 查询 active 且未过期记忆，`POST /chat` 响应包含 `memories_used`。
-- Task 18 Web UI 已落地到 `frontend/`：提供 React + Vite + TypeScript 对话式 Agent 工作台，并通过前端测试、TypeScript 类型检查和 Playwright UI 主流程验收；生产构建输出写入需要在普通本地环境或 GitHub Actions 中复验。
+- Task 18 Web UI 已落地到 `frontend/`：提供 React + Vite + TypeScript 对话式 Agent 工作台，并通过前端测试、TypeScript 类型检查和 Playwright UI 主流程验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，生产构建输出写入需要在普通本地环境或 GitHub Actions 中复验。
 - Task 21 CI 已落地到 `.github/workflows/ci.yml`：push、pull request 和手动触发时运行后端、前端和文档基础检查。
 - 本报告不把目标 API、设计文档中的长期能力或并行任务预期写成已完成能力。
 
@@ -16,9 +16,10 @@
 
 | 验证命令 | 当前结果 | 说明 |
 | --- | --- | --- |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`81 passed` | 用于验证 Task 1 到 Task 20 的后端能力。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`83 passed` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS 和 Chat 英文自然问句检索回归。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_memory.py -q` | 通过；`6 passed` | 用于验证 Task 17 Memory API、过滤规则、过期规则和 Chat `memories_used`。 |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`4 passed` | 用于回归验证 Chat API 引用、无来源保护和模型配置错误。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`5 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误和英文自然问句弱词过滤。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_source_index_api.py -q` | 通过；`5 passed` | 用于验证 Source / Index API 和索引后搜索闭环。 |
 | `npm.cmd test` | 通过；5 个测试文件、8 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图和索引任务视图。 |
 | `npm.cmd exec tsc -- --noEmit` | 通过 | 用于验证 Task 18 前端 TypeScript 类型检查。 |
@@ -46,10 +47,10 @@
 | Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用。 | `backend/tests/test_model_registry.py`。 | 通过。 | 真实 OpenAI-compatible 或 Ollama HTTP 调用仍待 provider client 实现验证。 |
 | Task 13 Hybrid Retriever | 可合并关键词和向量命中，支持过滤和空查询。 | `backend/tests/test_hybrid_retriever.py`。 | 通过。 | 当前主路径依赖 FTS；真实向量召回质量待后续接入验证。 |
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
-| Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实模型 provider HTTP 调用仍需后续验证。 |
+| Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实模型 provider HTTP 调用仍需后续验证。 |
 | Task 16 Agent Tools | `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 可作为后端工具函数使用。 | `backend/tests/test_agent_tools.py`。 | 通过。 | 当前是函数级工具，不是独立 HTTP API；后续如果需要从 Web UI 直接调用，需补稳定 HTTP 或 Agent 编排入口。 |
-| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 81 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
-| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；Python Playwright UI 主流程脚本；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，Playwright UI 主流程通过；生产构建输出写入被当前沙箱 Node 权限拦截。 | Playwright 当前验证的是前端 UI 主流程，API 为浏览器路由 mock；真实后端浏览器 E2E 和 `npm.cmd run build` 需要在普通本地环境或 GitHub Actions 中复验。 |
+| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 83 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
+| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite 开发源跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，Playwright UI 主流程通过，CORS 回归通过；生产构建输出写入被当前沙箱 Node 权限拦截。 | Playwright 当前验证的是前端 UI 主流程，API 为浏览器路由 mock；真实后端浏览器 E2E 本次被当前执行环境拦截，仍需在普通本地环境或 GitHub Actions 中复验；`npm.cmd run build` 也需复验。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
 | Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过。 | `POST /index/run` 当前同步执行，后续大目录应演进为后台任务。 |
 | Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
@@ -68,7 +69,7 @@
 
 ## 未完成能力
 
-- Web UI 生产构建输出写入和真实后端浏览器 E2E。
+- Web UI 生产构建输出写入和真实后端浏览器 E2E；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此该项仍未标为完成。
 - 真实模型 provider HTTP 调用、真实 embedding 和持久化向量库。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 

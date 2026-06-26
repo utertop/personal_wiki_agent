@@ -21,6 +21,27 @@ from app.retrieval.hybrid import HybridRetriever
 router = APIRouter(tags=["chat"])
 
 
+_CHAT_QUERY_STOP_WORDS = {
+    "what",
+    "how",
+    "why",
+    "is",
+    "are",
+    "the",
+    "a",
+    "an",
+    "to",
+    "for",
+    "can",
+    "could",
+    "would",
+    "should",
+    "please",
+    "help",
+    "helps",
+}
+
+
 class ChatRequest(BaseModel):
     """描述 Chat API 入参，message 是用户问题，过滤条件用于限定知识库检索范围。"""
 
@@ -121,11 +142,10 @@ def _search_for_chat(session: Session, request: ChatRequest) -> List[SearchResul
 def _chat_search_query(message: str) -> str:
     """从自然语言问题中提取轻量检索词，MVP 阶段优先保留英文术语。"""
     tokens = re.findall(r"[A-Za-z0-9_+#.-]+", message)
-    stop_words = {"what", "how", "why", "is", "are", "the", "a", "an", "to", "for"}
     keyword_tokens = [
         token.strip(".,?!:;")
         for token in tokens
-        if token.strip(".,?!:;").lower() not in stop_words
+        if token.strip(".,?!:;").lower() not in _CHAT_QUERY_STOP_WORDS
     ]
     return " ".join(keyword_tokens) if keyword_tokens else message
 

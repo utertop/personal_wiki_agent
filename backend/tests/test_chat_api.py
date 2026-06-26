@@ -151,6 +151,64 @@ def test_chat_api_generates_answer_with_traceable_citations() -> None:
     assert fake_client.last_context.items[0].document_metadata["relative_path"] == "rag.md"
 
 
+def test_chat_api_relaxes_english_question_words_for_retrieval() -> None:
+    """验证英文自然问句会去掉弱问句词，避免因为 help/can 等词漏掉可靠来源。"""
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
+    source = SourceRepository(session).create(
+        source_type="local_directory",
+        name="Local Notes",
+        uri="E:/Knowledge",
+        storage_mode="local_only",
+        sync_direction="read_only",
+    )
+    repository = DocumentRepository(session)
+    document = repository.create_document(
+        source_id=source.source_id,
+        uri="E:/Knowledge/rag-personal-wiki.md",
+        title="RAG Personal Wiki",
+        content_hash="hash-rag-english",
+        mime_type="text/markdown",
+        metadata_json={"relative_path": "rag-personal-wiki.md", "source_format": "markdown"},
+    )
+    chunk = repository.create_chunk(
+        document_id=document.document_id,
+        chunk_index=0,
+        text="RAG helps a personal wiki answer questions with grounded citations from local notes.",
+        heading_path="RAG Personal Wiki",
+        page_number=None,
+        token_count=13,
+        metadata_json={"source_format": "markdown"},
+    )
+    SQLiteFtsIndex(session).index_chunks([chunk])
+    document_id = document.document_id
+    session.close()
+
+    fake_client = FakeChatModelClient()
+    app = create_app()
+    app.state.session_factory = session_factory
+    app.state.model_router = FakeModelRouter(fake_client)
+    client = TestClient(app)
+
+    response = client.post(
+        "/chat",
+        json={"message": "How can RAG help a personal wiki?", "top_k": 3},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "RAG 可以先检索个人知识库" in body["answer"]
+    assert body["citations"][0]["document_id"] == document_id
+    assert fake_client.last_question == "How can RAG help a personal wiki?"
+
+
 def test_chat_api_returns_clear_message_without_reliable_sources() -> None:
     """验证没有可靠检索来源时，Chat API 不会调用模型或伪造引用。"""
 

@@ -10,7 +10,7 @@ Personal Wiki Agent 是一个本地优先、可持续学习、可主动协作的
 
 当前仓库已经完成 MVP 的主干能力：项目骨架、配置模型、SQLite 元数据模型、Alembic 迁移、本地目录 connector、增量同步判断、Markdown / txt / PDF / docx / HTML parser、chunk、SQLite FTS5、VectorStore 接口、ModelProvider 注册表、Hybrid Retriever、Search API、Chat API、基础 Agent Tools、Memory API 和对话式 Web UI。
 
-Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试、TypeScript 类型检查和 Playwright UI 主流程验收；生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
+Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试、TypeScript 类型检查和 Playwright UI 主流程验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
 
 ### 已完成能力
 
@@ -21,6 +21,7 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 - 检索 API：`POST /search` 返回命中 chunk、分数、文档摘要、数据源摘要和 citation。
 - 来源详情 API：`GET /documents/{document_id}` 与 `GET /chunks/{chunk_id}` 可打开来源。
 - 问答 API：`POST /chat` 基于检索结果构造上下文，返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary` 和 `model`。
+- Chat 检索：英文自然问句会过滤 `can`、`help` 等弱问句词，避免因为非核心词导致可靠来源漏召回。
 - Memory API：`POST /memory` 可创建长期记忆，`GET /memory` 可按 query、memory_type 和 limit 查询 active 且未过期的记忆。
 - Agent Tools：`search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 已作为后端工具函数实现。
 - Source API：`GET /sources` 可列出数据源，`POST /sources` 可创建本地优先数据源。
@@ -30,7 +31,7 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 ### 未完成或待后续增强
 
 - 真实模型 HTTP 调用仍依赖后续 provider 客户端接入；当前测试使用 fake model client 验证 Chat API 契约。
-- Web UI 真实后端浏览器 E2E 和生产构建输出写入仍需在普通本地环境或 GitHub Actions 中继续补充。
+- Web UI 真实后端浏览器 E2E 和生产构建输出写入仍需在普通本地环境或 GitHub Actions 中继续补充；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此未把该项标为完成。
 - 云端笔记 connector、自动写回云端笔记、OCR、复杂自动化工作流、企业级多用户和移动端不属于当前 MVP 已完成范围。
 
 ## 本地运行
@@ -75,7 +76,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests -v
 ```
 
-截至 Task 20 最终同步后的复验，后端全量测试为 `81 passed`。
+截至本次复验，后端全量测试为 `83 passed`。
 
 如需只验证某个模块，可运行：
 

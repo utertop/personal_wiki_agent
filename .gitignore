@@ -28,3 +28,4 @@ Thumbs.db
 # Codex / agent local state
 .agents/
 .codex/
+.codex_tmp/
