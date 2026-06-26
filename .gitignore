@@ -10,6 +10,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Virtual environment
 .venv/
 venv/
 
@@ -29,3 +31,7 @@ Thumbs.db
 .agents/
 .codex/
 .codex_tmp/
+
+
+# Python package metadata
+*.egg-info/
