@@ -1,5 +1,7 @@
 # Personal Wiki Agent
 
+[![CI](https://github.com/utertop/personal_wiki_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/utertop/personal_wiki_agent/actions/workflows/ci.yml)
+
 Personal Wiki Agent 是一个本地优先、可持续学习、可主动协作的个人知识库 Agent 项目。
 
 项目目标不是重做一个笔记 App，而是整合个人电脑上的多个知识目录、本地文档、笔记 App 本地同步目录、云端笔记 App、网页资料和长期对话上下文，让 Agent 帮助完成检索、总结、关联、生成和提醒。
@@ -8,7 +10,7 @@ Personal Wiki Agent 是一个本地优先、可持续学习、可主动协作的
 
 当前仓库已经完成 MVP 的主干能力：项目骨架、配置模型、SQLite 元数据模型、Alembic 迁移、本地目录 connector、增量同步判断、Markdown / txt / PDF / docx / HTML parser、chunk、SQLite FTS5、VectorStore 接口、ModelProvider 注册表、Hybrid Retriever、Search API、Chat API、基础 Agent Tools、Memory API 和对话式 Web UI。
 
-Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试与 TypeScript 类型检查；生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境复验。
+Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试、TypeScript 类型检查和 Playwright UI 主流程验收；生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
 
 ### 已完成能力
 
@@ -21,13 +23,14 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 - 问答 API：`POST /chat` 基于检索结果构造上下文，返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary` 和 `model`。
 - Memory API：`POST /memory` 可创建长期记忆，`GET /memory` 可按 query、memory_type 和 limit 查询 active 且未过期的记忆。
 - Agent Tools：`search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 已作为后端工具函数实现。
-- Web UI：`frontend/` 提供 React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源只读入口和索引任务只读入口。
+- Source API：`GET /sources` 可列出数据源，`POST /sources` 可创建本地优先数据源。
+- Index API：`POST /index/run` 可触发同步索引，`GET /index/jobs` 可查看最近索引任务。
+- Web UI：`frontend/` 提供 React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口。
 
 ### 未完成或待后续增强
 
-- `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 仍是目标 API；当前已实现索引流水线和 repository，但尚未在 FastAPI 中注册对应路由。
 - 真实模型 HTTP 调用仍依赖后续 provider 客户端接入；当前测试使用 fake model client 验证 Chat API 契约。
-- Web UI 浏览器端到端手动验收、生产构建输出写入和后端联调仍需在普通本地环境中继续补充。
+- Web UI 真实后端浏览器 E2E 和生产构建输出写入仍需在普通本地环境或 GitHub Actions 中继续补充。
 - 云端笔记 connector、自动写回云端笔记、OCR、复杂自动化工作流、企业级多用户和移动端不属于当前 MVP 已完成范围。
 
 ## 本地运行
@@ -72,7 +75,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests -v
 ```
 
-截至 Task 18 / Task 19 最终同步后的复验，后端全量测试为 `76 passed`。
+截至 Task 20 最终同步后的复验，后端全量测试为 `81 passed`。
 
 如需只验证某个模块，可运行：
 
@@ -81,6 +84,18 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -v
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_agent_tools.py -v
 ```
+
+## CI
+
+仓库已配置 GitHub Actions 工作流 [.github/workflows/ci.yml](.github/workflows/ci.yml)，在 push、pull request 和手动触发时运行。
+
+CI 当前包含三类检查：
+
+- Backend：Python 3.11，安装 `backend[dev]`，运行 `python -m pytest backend/tests -q`。
+- Frontend：Node 22，运行 `npm ci`、`npm test`、`npm exec tsc -- --noEmit` 和 `npm run build`。
+- Docs：检查已跟踪文本文件中的乱码替换字符、合并冲突标记，以及 Markdown 本地相对链接。
+
+当前项目本地仍以手动运行和本地优先开发为主，CI 只做质量门禁；暂不做自动部署。
 
 ## 配置
 
@@ -97,11 +112,11 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 - `model`：聊天模型、embedding 模型和本地模型 provider 偏好。
 - `privacy.ignore_patterns`：全局忽略规则，用于排除临时文件、缓存目录和敏感路径。
 
-当前 FastAPI 默认启动时使用安全默认配置；配置文件读取能力已经在 `backend/app/core/settings.py` 中实现。将 YAML 配置导入数据库 source、触发索引任务的 HTTP 管理入口仍待后续 API 封装。
+当前 FastAPI 默认启动时使用安全默认配置；配置文件读取能力已经在 `backend/app/core/settings.py` 中实现。MVP 现在提供 `GET /sources` 和 `POST /sources` 管理数据库 source。将 YAML 配置自动导入数据库 source 仍是后续增强能力。
 
 ## 本地目录索引
 
-当前可用的索引入口是后端内部 `IndexingPipeline`：
+当前可用的索引入口包括后端内部 `IndexingPipeline` 和 HTTP API：
 
 - 扫描 `Source` 表中启用的数据源。
 - 通过 connector 发现文件。
@@ -110,7 +125,29 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 - 调用 chunker 分块并写入 `Document`、`Chunk` 和 `IndexJob`。
 - 可选写入 `SQLiteFtsIndex`，供 `POST /search` 使用。
 
-开发验证可参考 [backend/tests/test_indexing_pipeline.py](backend/tests/test_indexing_pipeline.py)。面向用户的 `POST /index/run` 和 `GET /index/jobs` 仍是目标 API，待后续 API 封装。
+开发验证可参考 [backend/tests/test_indexing_pipeline.py](backend/tests/test_indexing_pipeline.py) 和 [backend/tests/test_source_index_api.py](backend/tests/test_source_index_api.py)。
+
+创建本地目录数据源：
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/sources `
+  -ContentType "application/json" `
+  -Body '{"source_type":"local_directory","name":"本地资料","uri":"E:/Knowledge"}'
+```
+
+触发索引并查看任务：
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/index/run `
+  -ContentType "application/json" `
+  -Body '{"source_id":1}'
+
+Invoke-RestMethod http://127.0.0.1:8000/index/jobs
+```
 
 ## 搜索
 
@@ -197,11 +234,12 @@ npm run build
 
 当前已验证：
 
-- `npm.cmd test` 通过，覆盖 API client、工具活动流和对话视图。
+- `npm.cmd test` 通过，覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
 - `npm.cmd exec tsc -- --noEmit` 通过，前端 TypeScript 类型检查通过。
-- `npm.cmd run build` 在当前沙箱中进入 Vite 构建输出阶段后，被 Node 写文件权限限制拦截；该命令需要在普通本地环境复验。
+- Python Playwright UI 主流程脚本通过，覆盖默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务；本次 API 使用浏览器路由 mock。
+- `npm.cmd run build` 在当前沙箱中进入 Vite 构建输出阶段后，被 Node 写文件权限限制拦截；该命令需要在普通本地环境或 GitHub Actions 中复验。
 
-浏览器端到端验收时还需要确认：
+真实后端浏览器 E2E 后续还需要确认：
 
 - 默认进入对话式 Agent 主界面。
 - 能发送问题并展示回答。

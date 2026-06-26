@@ -20,6 +20,7 @@ class SourceRepository:
         uri: str,
         storage_mode: str,
         sync_direction: str,
+        enabled: bool = True,
     ) -> Source:
         """创建一个数据源记录，并返回带主键的 ORM 对象。"""
         source = Source(
@@ -28,6 +29,7 @@ class SourceRepository:
             uri=uri,
             storage_mode=storage_mode,
             sync_direction=sync_direction,
+            enabled=enabled,
         )
         self.session.add(source)
         self.session.commit()
@@ -67,3 +69,8 @@ class SourceRepository:
             .order_by(Source.source_id)
             .all()
         )
+
+    def list_all(self) -> List[Source]:
+        """列出全部数据源，供管理 API 和前端配置页展示。"""
+
+        return self.session.query(Source).order_by(Source.source_id).all()

@@ -121,6 +121,61 @@ export interface CreateMemoryRequest {
   expires_at?: string;
 }
 
+export type SourceType = "local_directory" | "local_synced_notes" | "obsidian_vault";
+
+export interface SourceRecord {
+  source_id: number;
+  source_type: SourceType | string;
+  name: string;
+  uri: string;
+  storage_mode: string;
+  sync_direction: string;
+  enabled: boolean;
+  last_sync_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SourceListResponse {
+  items: SourceRecord[];
+}
+
+export interface CreateSourceRequest {
+  source_type: SourceType;
+  name: string;
+  uri: string;
+  storage_mode?: string;
+  sync_direction?: string;
+  enabled?: boolean;
+}
+
+export interface IndexJobRecord {
+  job_id: number;
+  source_id: number;
+  source_name?: string | null;
+  status: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  total_items: number;
+  processed_items: number;
+  failed_items: number;
+  error_message?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IndexJobListResponse {
+  items: IndexJobRecord[];
+}
+
+export interface IndexRunRequest {
+  source_id?: number;
+}
+
+export interface IndexRunResponse {
+  jobs: IndexJobRecord[];
+}
+
 export interface PersonalWikiApiClient {
   chat(request: ChatRequest): Promise<ChatResponse>;
   search(request: SearchRequest): Promise<SearchResponse>;
@@ -128,6 +183,10 @@ export interface PersonalWikiApiClient {
   getChunk(chunkId: number): Promise<ChunkDetail>;
   listMemory(params?: { query?: string; memory_type?: MemoryType | string; limit?: number }): Promise<MemoryResponse>;
   createMemory(request: CreateMemoryRequest): Promise<MemoryUsed>;
+  listSources(): Promise<SourceListResponse>;
+  createSource(request: CreateSourceRequest): Promise<SourceRecord>;
+  runIndex(request: IndexRunRequest): Promise<IndexRunResponse>;
+  listIndexJobs(params?: { limit?: number }): Promise<IndexJobListResponse>;
 }
 
 /** 规范化 Chat API 响应，确保可选 memory 字段不会让 UI 读取失败。 */
@@ -172,6 +231,25 @@ export function createApiClient(baseUrl = ""): PersonalWikiApiClient {
         method: "POST",
         body: JSON.stringify(cleanPayload(request)),
       });
+    },
+    async listSources() {
+      return requestJson<SourceListResponse>(apiBase, "/sources");
+    },
+    async createSource(request: CreateSourceRequest) {
+      return requestJson<SourceRecord>(apiBase, "/sources", {
+        method: "POST",
+        body: JSON.stringify(cleanPayload(request)),
+      });
+    },
+    async runIndex(request: IndexRunRequest) {
+      return requestJson<IndexRunResponse>(apiBase, "/index/run", {
+        method: "POST",
+        body: JSON.stringify(cleanPayload(request)),
+      });
+    },
+    async listIndexJobs(params = {}) {
+      const query = buildQuery(params);
+      return requestJson<IndexJobListResponse>(apiBase, `/index/jobs${query}`);
     },
   };
 }

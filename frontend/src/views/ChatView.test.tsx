@@ -33,6 +33,10 @@ describe("ChatView 对话工作台", () => {
       getChunk: vi.fn(),
       listMemory: vi.fn(),
       createMemory: vi.fn(),
+      listSources: vi.fn(),
+      createSource: vi.fn(),
+      runIndex: vi.fn(),
+      listIndexJobs: vi.fn(),
     };
 
     render(<ChatView client={client} onOpenSource={openSource} />);

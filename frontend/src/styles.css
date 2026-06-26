@@ -187,6 +187,34 @@ button {
   display: none;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid #d6ddd8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #24312a;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .settings-grid {
   position: absolute;
   top: 44px;
@@ -528,6 +556,32 @@ button {
   background: #f8faf9;
 }
 
+.inline-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(220px, 2fr) minmax(170px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 8px 28px 12px;
+}
+
+.inline-form label {
+  display: grid;
+  gap: 5px;
+  color: #52615a;
+  font-size: 12px;
+}
+
+.inline-form input,
+.inline-form select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #d5ddd8;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2723;
+  padding: 8px;
+}
+
 .table-wrap {
   margin: 8px 28px 0;
   border: 1px solid #dfe5e1;
@@ -653,6 +707,11 @@ tr:last-child td {
 
   .composer {
     grid-template-columns: 1fr;
+  }
+
+  .inline-form {
+    grid-template-columns: 1fr;
+    margin: 8px 16px 12px;
   }
 
   .send-button {

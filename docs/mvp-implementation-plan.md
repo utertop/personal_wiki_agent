@@ -782,7 +782,7 @@ MVP 完成后，用户应该能做到：
 - `GET /memory?query=&memory_type=&limit=` 返回 `{items:[...]}`，只包含 active 且未过期的 memory。
 - `POST /chat` 响应新增 `memories_used: []`，明确区分文档来源 `citations` 和长期记忆。
 - 支持的 `memory_type` 为 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
-- 验证结果：`backend/tests/test_memory.py` 6 passed，`backend/tests/test_chat_api.py` 4 passed；Task 19 复验全量 `backend/tests` 为 76 passed。
+- 验证结果：`backend/tests/test_memory.py` 6 passed，`backend/tests/test_chat_api.py` 4 passed；Task 20 复验全量 `backend/tests` 为 81 passed。
 
 **验收标准：**
 
@@ -823,15 +823,18 @@ MVP 完成后，用户应该能做到：
 - [x] 点击 citation 打开来源详情抽屉。
 - [x] 展示工具活动流。
 - [x] 数据源和索引状态先做只读视图。
-- [ ] 用 Playwright 或浏览器手动验证主要流程。
+- [x] 数据源页接入 `GET /sources` 和 `POST /sources`。
+- [x] 索引页接入 `GET /index/jobs` 和 `POST /index/run`。
+- [x] 用 Playwright 或浏览器手动验证主要流程。
 
 **当前记录：**
 
 - `frontend/` 已提供对话式 Agent 工作台。
-- 前端测试已覆盖 API client、工具活动流和对话视图。
+- 前端测试已覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
 - 前端 TypeScript 类型检查已通过。
-- 前端生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境复验。
-- 浏览器端到端手动验收未保留常驻 dev server，后续联调 Source / Index API 时继续补充。
+- Playwright UI 主流程验收已通过，覆盖默认 Chat 页面、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。
+- 本次 Playwright 验收使用浏览器路由 mock API 响应，用于验证前端主流程；真实后端浏览器 E2E 仍需在普通本地环境或后续 CI 环境补充。
+- 前端生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
 
 **验收标准：**
 
@@ -852,17 +855,107 @@ MVP 完成后，用户应该能做到：
 
 **步骤：**
 
-- [ ] 更新 README 的本地启动、配置、索引、搜索、问答说明。
-- [ ] 记录已完成能力和未完成能力。
-- [ ] 执行文档一致性体检。
-- [ ] 形成 MVP 验收报告。
-- [ ] 确认测试、格式检查、基础手动验证结果。
+- [x] 更新 README 的本地启动、配置、索引、搜索、问答说明。
+- [x] 记录已完成能力和未完成能力。
+- [x] 执行文档一致性体检。
+- [x] 形成 MVP 验收报告。
+- [!] 确认测试、格式检查、基础手动验证结果；自动化测试、类型检查、文档检查和 Playwright UI 主流程验收已完成，前端生产构建输出与真实后端浏览器 E2E 仍需在普通本地环境或 GitHub Actions 中补充确认。
+
+**当前记录：**
+
+- README 已覆盖本地运行、配置、索引、搜索、问答、Agent Tools、Memory、Web UI、CI 和打包说明。
+- [mvp-acceptance-report.md](mvp-acceptance-report.md) 已记录已完成能力、未完成能力、验证命令和 Task 18 到 Task 21 的当前状态。
+- 文档与文本卫生检查已通过：未发现乱码替换字符、合并冲突标记或失效的 Markdown 本地相对链接。
+- Task 19 的文档与验收整理已基本完成；剩余风险来自真实后端浏览器 E2E 和前端生产构建输出复验，不是文档本身缺失。
 
 **验收标准：**
 
 - 新用户能按 README 启动项目。
 - MVP 验收标准逐项有结果。
 - 文档与实际代码不冲突。
+
+### Task 20: Source / Index API 与 Web UI 接入
+
+**目标：** 让数据源配置和索引任务从内部能力变成可被前端调用的 MVP 闭环。
+
+**文件：**
+
+- Create: `backend/app/api/routes_sources.py`
+- Create: `backend/app/api/routes_index.py`
+- Create: `backend/tests/test_source_index_api.py`
+- Modify: `backend/app/repositories/sources.py`
+- Modify: `backend/app/repositories/index_jobs.py`
+- Modify: `backend/app/main.py`
+- Modify: `frontend/src/api/client.ts`
+- Modify: `frontend/src/views/SourcesView.tsx`
+- Modify: `frontend/src/views/IndexJobsView.tsx`
+- Create: `frontend/src/views/SourcesView.test.tsx`
+- Create: `frontend/src/views/IndexJobsView.test.tsx`
+
+**产出接口：**
+
+- `GET /sources`
+- `POST /sources`
+- `POST /index/run`
+- `GET /index/jobs`
+
+**步骤：**
+
+- [x] 为 Source / Index API 写失败测试。
+- [x] 实现 Source 创建和列表 API。
+- [x] 实现同步索引触发和最近任务列表 API。
+- [x] 索引触发时接入 `SQLiteFtsIndex`，保证 `/search` 能命中刚索引的内容。
+- [x] 前端 API client 增加 Source / Index 方法。
+- [x] 数据源页从占位表切换为真实列表和创建表单。
+- [x] 索引页从占位表切换为真实任务列表和运行按钮。
+
+**完成记录：**
+
+- 后端新增测试 `backend/tests/test_source_index_api.py`，覆盖数据源创建、source_type 校验、单 source 索引、全部启用 source 索引、缺失 source 404。
+- 前端新增 `SourcesView.test.tsx` 和 `IndexJobsView.test.tsx`，验证页面通过 API 加载数据并触发创建或索引。
+- 边界：`POST /index/run` 当前是请求内同步执行，适合 MVP；后续如果索引耗时变长，应演进为后台任务队列。
+- 边界：`POST /sources` 只开放已有 connector 的三类本地优先 source；云端笔记 connector 仍按后续路线推进。
+
+**验收标准：**
+
+- 用户可以通过 API 或 Web UI 创建本地数据源。
+- 用户可以通过 API 或 Web UI 触发索引任务。
+- 索引完成后，`POST /search` 可以检索到新内容。
+
+### Task 21: GitHub Actions CI
+
+**目标：** 给 GitHub 仓库增加最小但有效的质量门禁，避免提交后才发现后端、前端或文档基础检查失败。
+
+**文件：**
+
+- Create: `.github/workflows/ci.yml`
+- Delete: `.github/workflows/pylint.yml`
+- Modify: `README.md`
+- Modify: `docs/mvp-acceptance-report.md`
+
+**CI 范围：**
+
+- Backend：Python 3.11，安装 `backend[dev]`，运行 `python -m pytest backend/tests -q`。
+- Frontend：Node 22，运行 `npm ci`、`npm test`、`npm exec tsc -- --noEmit`、`npm run build`。
+- Docs：检查已跟踪文本文件中的乱码替换字符、合并冲突标记，以及 Markdown 本地相对链接。
+
+**步骤：**
+
+- [x] 删除过期的 Python 3.8 / 3.9 / 3.10 Pylint workflow。
+- [x] 新增统一 `CI` workflow。
+- [x] README 增加 CI badge 和 CI 说明。
+- [x] 验收报告记录 CI 范围、边界和后续远端验证动作。
+
+**完成记录：**
+
+- CI 触发条件为 push、pull request 和 workflow_dispatch。
+- CI 只做质量门禁，不做自动部署；自动部署留到项目有稳定部署目标后再设计。
+- 本地可验证后端、前端测试、类型检查和文档检查；GitHub Actions 远端首次运行需要 push 后在 Actions 页面确认。
+
+**验收标准：**
+
+- 提交到 GitHub 后，Actions 页面能看到 `CI` workflow。
+- 后端、前端和文档基础检查分别独立失败或通过，便于快速定位问题。
 
 ## 6. 每周追踪模板
 
@@ -905,14 +998,14 @@ MVP 完成后，用户应该能做到：
 
 ## 9. 当前阶段建议推进顺序
 
-截至 Task 18 / Task 19 文档体检，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过前端单元测试和 TypeScript 类型检查。生产构建输出写入需要在普通本地环境复验。
+截至 Task 21 文档体检，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
 
 下一步优先推进：
 
-1. 索引管理 API：将当前内部 `IndexingPipeline` 封装为 `POST /index/run` 和 `GET /index/jobs`，供 Web UI 调用。
-2. Source 管理 API：补齐 `GET /sources` 和 `POST /sources`，让配置文件、数据库 source 与 UI 入口对齐。
-3. Web UI 联调：把数据源页和索引任务页从只读视图接入真实 API。
-4. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，补充浏览器手动验证和真实本地目录验证结果。
+1. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，补充真实后端浏览器 E2E、真实本地目录索引和生产构建复验结果。
+2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果。
+3. 将 `POST /index/run` 从同步执行演进为后台任务，避免大目录索引阻塞请求。
+4. 推进真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
 
 ## 10. 阶段验收门
 

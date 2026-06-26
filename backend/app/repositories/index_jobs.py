@@ -87,3 +87,13 @@ class IndexJobRepository:
         self.session.commit()
         self.session.refresh(job)
         return job
+
+    def list_recent(self, limit: int = 50) -> List[IndexJob]:
+        """按更新时间倒序列出最近索引任务，供 API 和前端状态页展示。"""
+
+        return (
+            self.session.query(IndexJob)
+            .order_by(IndexJob.updated_at.desc(), IndexJob.job_id.desc())
+            .limit(limit)
+            .all()
+        )

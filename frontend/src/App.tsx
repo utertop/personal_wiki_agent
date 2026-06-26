@@ -70,8 +70,8 @@ export default function App() {
       </aside>
       <main className="workspace">
         {activeView === "chat" ? <ChatView client={client} onOpenSource={setSelectedCitation} /> : null}
-        {activeView === "sources" ? <SourcesView /> : null}
-        {activeView === "indexJobs" ? <IndexJobsView /> : null}
+        {activeView === "sources" ? <SourcesView client={client} /> : null}
+        {activeView === "indexJobs" ? <IndexJobsView client={client} /> : null}
       </main>
       <SourceDrawer
         citation={selectedCitation}
