@@ -20,7 +20,7 @@
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_memory.py -q` | 通过；`6 passed` | 用于验证 Task 17 Memory API、过滤规则、过期规则和 Chat `memories_used`。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`5 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误和英文自然问句弱词过滤。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_source_index_api.py -q` | 通过；`5 passed` | 用于验证 Source / Index API 和索引后搜索闭环。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_source_index_api.py -q` | 通过；`5 passed` | 用于验证 Source / Index API、后台索引排队和索引后搜索闭环。 |
 | `npm.cmd test` | 通过；5 个测试文件、8 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图和索引任务视图。 |
 | `npm.cmd exec tsc -- --noEmit` | 通过 | 用于验证 Task 18 前端 TypeScript 类型检查。 |
 | Python Playwright UI 主流程脚本 | 通过；`OK: Playwright UI main flow passed` | 使用 Vite dev server、Chrome 和浏览器路由 mock API，验证默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。 |
@@ -41,7 +41,7 @@
 | Task 6 增量同步 | 可识别新增、更新、删除、未变化和疑似移动。 | `backend/tests/test_sync_detection.py`。 | 通过。 | 移动识别当前是候选能力，真实合并策略后续仍需增强。 |
 | Task 7 ParserAdapter | Markdown / txt / PDF / docx / HTML 可解析为统一结果。 | `backend/tests/test_parsers.py`。 | 通过。 | OCR、扫描版 PDF、复杂版式解析不属于当前 MVP 已完成范围。 |
 | Task 8 Chunker | 可按标题、段落和页码生成 chunk。 | `backend/tests/test_chunker.py`。 | 通过。 | 后续需按真实资料规模评估 chunk 大小和中文质量。 |
-| Task 9 索引流水线 | 可扫描 source、解析文件、写入 document/chunk/job，并可接入 FTS。 | `backend/tests/test_indexing_pipeline.py`。 | 通过。 | 当前已通过 `POST /index/run` 暴露同步索引入口；大目录后台化仍是后续增强。 |
+| Task 9 索引流水线 | 可扫描 source、解析文件、写入 document/chunk/job，并可接入 FTS。 | `backend/tests/test_indexing_pipeline.py`。 | 通过。 | 流水线仍可被内部同步调用；HTTP 层已通过后台任务避免请求长时间阻塞。 |
 | Task 10 LexicalIndex / FTS5 | SQLite FTS5 可索引、检索、替换、删除 chunk。 | `backend/tests/test_sqlite_fts.py`。 | 通过。 | 中文检索质量仍需真实语料评估，后续可接 Tantivy / Meilisearch adapter。 |
 | Task 11 VectorStore 接口 | Hashing embedder 与内存型向量库满足接口契约。 | `backend/tests/test_vector_store_contract.py`。 | 通过。 | 当前不代表真实语义 embedding 质量，真实向量库接入需后续验证。 |
 | Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用。 | `backend/tests/test_model_registry.py`。 | 通过。 | 真实 OpenAI-compatible 或 Ollama HTTP 调用仍待 provider client 实现验证。 |
@@ -52,7 +52,7 @@
 | Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 83 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
 | Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite 开发源跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，Playwright UI 主流程通过，CORS 回归通过；生产构建输出写入被当前沙箱 Node 权限拦截。 | Playwright 当前验证的是前端 UI 主流程，API 为浏览器路由 mock；真实后端浏览器 E2E 本次被当前执行环境拦截，仍需在普通本地环境或 GitHub Actions 中复验；`npm.cmd run build` 也需复验。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
-| Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过。 | `POST /index/run` 当前同步执行，后续大目录应演进为后台任务。 |
+| Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过；`POST /index/run` 已返回 `202 Accepted` 和 `queued` job，并由后台任务执行实际索引。 | 当前后台执行使用 FastAPI BackgroundTasks，适合本地 MVP；后续如需更强可靠性可演进为持久化任务队列和独立 worker。 |
 | Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
 
 ## 已完成能力
@@ -60,7 +60,7 @@
 - 后端可启动并暴露健康检查、搜索、问答和来源详情 API。
 - Memory API 可创建和查询长期记忆，Chat API 可返回 `memories_used`。
 - 本地目录索引主干可通过 `IndexingPipeline` 验证。
-- Source / Index API 可创建数据源、触发索引并查看任务状态。
+- Source / Index API 可创建数据源、触发后台索引并查看任务状态。
 - 关键词检索、来源引用、回答上下文和 Agent Tools 已形成后端闭环。
 - 文档知识库与长期记忆在模型层保持分离。
 - Web UI 已形成对话式工作台，数据源页和索引任务页已接入真实 API，并通过前端测试、TypeScript 类型检查和 Playwright UI 主流程验收。
@@ -117,6 +117,6 @@ npm run build
 
 1. 补充真实后端浏览器 E2E，验证真实本地目录索引、搜索、问答、来源抽屉和记忆使用结果。
 2. 在普通本地 PowerShell 环境或 GitHub Actions 复验 `npm run build`。
-3. 将 `POST /index/run` 演进为后台任务，避免大目录同步索引阻塞请求。
-4. 接入真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
+3. 接入真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
+4. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 5. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。

@@ -25,7 +25,7 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 - Memory API：`POST /memory` 可创建长期记忆，`GET /memory` 可按 query、memory_type 和 limit 查询 active 且未过期的记忆。
 - Agent Tools：`search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 已作为后端工具函数实现。
 - Source API：`GET /sources` 可列出数据源，`POST /sources` 可创建本地优先数据源。
-- Index API：`POST /index/run` 可触发同步索引，`GET /index/jobs` 可查看最近索引任务。
+- Index API：`POST /index/run` 返回 `202 Accepted` 并创建 `queued` 后台索引任务，`GET /index/jobs` 可查看最近索引任务状态。
 - Web UI：`frontend/` 提供 React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口。
 
 ### 未完成或待后续增强
@@ -138,7 +138,7 @@ Invoke-RestMethod `
   -Body '{"source_type":"local_directory","name":"本地资料","uri":"E:/Knowledge"}'
 ```
 
-触发索引并查看任务：
+触发后台索引并查看任务：
 
 ```powershell
 Invoke-RestMethod `
@@ -149,6 +149,8 @@ Invoke-RestMethod `
 
 Invoke-RestMethod http://127.0.0.1:8000/index/jobs
 ```
+
+`POST /index/run` 不在请求内长时间阻塞索引；它会先返回排队任务，实际扫描和写入由后台任务继续执行。前端或 CLI 可轮询 `GET /index/jobs` 查看 `queued`、`running`、`completed`、`completed_with_errors` 或 `failed` 状态。
 
 ## 搜索
 

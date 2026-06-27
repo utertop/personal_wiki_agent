@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
+from app.db.session import create_session_factory
 from app.db.session import get_db_session
 from app.indexing.pipeline import IndexingPipeline
 from app.indexing.sqlite_fts import SQLiteFtsIndex
@@ -53,22 +54,34 @@ class IndexRunResponse(BaseModel):
     jobs: List[IndexJobResponse]
 
 
-@router.post("/index/run", response_model=IndexRunResponse)
+@router.post("/index/run", response_model=IndexRunResponse, status_code=status.HTTP_202_ACCEPTED)
 def run_index(
     request: IndexRunRequest,
+    background_tasks: BackgroundTasks,
+    http_request: Request,
     session: Session = Depends(get_db_session),
 ) -> IndexRunResponse:
-    """同步触发索引任务，MVP 阶段直接在请求内执行。"""
+    """排队触发索引任务，并把实际索引执行交给 FastAPI 后台任务。"""
 
     sources = SourceRepository(session)
     if request.source_id is not None and sources.get(request.source_id) is None:
         raise HTTPException(status_code=404, detail="source_not_found")
 
-    pipeline = IndexingPipeline(session, lexical_index=SQLiteFtsIndex(session))
     if request.source_id is not None:
-        jobs = [pipeline.run_source_index(request.source_id)]
+        target_source_ids = [request.source_id]
     else:
-        jobs = pipeline.run_all_sources()
+        target_source_ids = [source.source_id for source in sources.list_enabled()]
+
+    job_repository = IndexJobRepository(session)
+    jobs = [
+        job_repository.create(source_id=source_id, status="queued")
+        for source_id in target_source_ids
+    ]
+    background_tasks.add_task(
+        run_queued_index_jobs,
+        _session_factory_for_background(http_request),
+        [(job.source_id, job.job_id) for job in jobs],
+    )
 
     source_names = _source_names(session)
     return IndexRunResponse(jobs=[_job_response(job, source_names) for job in jobs])
@@ -112,3 +125,30 @@ def _job_response(job: IndexJob, source_names: Dict[int, str]) -> IndexJobRespon
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
+
+
+def _session_factory_for_background(request: Request):
+    """读取后台索引使用的 session factory，确保后台任务不复用请求 session。"""
+    session_factory = getattr(request.app.state, "session_factory", None)
+    if session_factory is not None:
+        return session_factory
+
+    database_url = getattr(request.app.state, "database_url", None)
+    if database_url is not None:
+        return create_session_factory(database_url)
+
+    # 导入默认 session factory 的路径集中在 get_db_session 内部；这里通过默认配置重建即可。
+    from app.core.settings import load_settings
+
+    return create_session_factory(load_settings(None).database_url)
+
+
+def run_queued_index_jobs(session_factory: sessionmaker, job_specs: List[Tuple[int, int]]) -> None:
+    """在后台任务中逐个执行已排队索引任务，并为每个任务使用独立数据库 session。"""
+    for source_id, job_id in job_specs:
+        session = session_factory()
+        try:
+            pipeline = IndexingPipeline(session, lexical_index=SQLiteFtsIndex(session))
+            pipeline.run_source_index(source_id, job_id=job_id)
+        finally:
+            session.close()

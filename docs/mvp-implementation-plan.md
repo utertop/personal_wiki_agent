@@ -904,7 +904,7 @@ MVP 完成后，用户应该能做到：
 
 - [x] 为 Source / Index API 写失败测试。
 - [x] 实现 Source 创建和列表 API。
-- [x] 实现同步索引触发和最近任务列表 API。
+- [x] 实现索引触发和最近任务列表 API。
 - [x] 索引触发时接入 `SQLiteFtsIndex`，保证 `/search` 能命中刚索引的内容。
 - [x] 前端 API client 增加 Source / Index 方法。
 - [x] 数据源页从占位表切换为真实列表和创建表单。
@@ -914,7 +914,7 @@ MVP 完成后，用户应该能做到：
 
 - 后端新增测试 `backend/tests/test_source_index_api.py`，覆盖数据源创建、source_type 校验、单 source 索引、全部启用 source 索引、缺失 source 404。
 - 前端新增 `SourcesView.test.tsx` 和 `IndexJobsView.test.tsx`，验证页面通过 API 加载数据并触发创建或索引。
-- 边界：`POST /index/run` 当前是请求内同步执行，适合 MVP；后续如果索引耗时变长，应演进为后台任务队列。
+- 边界：`POST /index/run` 第一版曾为请求内同步执行；Task 22 已演进为 FastAPI BackgroundTasks 后台执行。该方案适合本地 MVP，后续如果需要跨进程可靠性，应继续演进为持久化任务队列和独立 worker。
 - 边界：`POST /sources` 只开放已有 connector 的三类本地优先 source；云端笔记 connector 仍按后续路线推进。
 
 **验收标准：**
@@ -958,6 +958,51 @@ MVP 完成后，用户应该能做到：
 - 提交到 GitHub 后，Actions 页面能看到 `CI` workflow。
 - 后端、前端和文档基础检查分别独立失败或通过，便于快速定位问题。
 
+### Task 22: Index API 后台任务化
+
+**目标：** 避免 `POST /index/run` 在大目录索引时长时间阻塞 HTTP 请求，让 API 先返回可追踪任务，再由后台任务执行实际索引。
+
+**文件：**
+
+- Modify: `backend/app/api/routes_index.py`
+- Modify: `backend/app/indexing/pipeline.py`
+- Modify: `backend/app/repositories/index_jobs.py`
+- Modify: `backend/tests/test_source_index_api.py`
+- Modify: `frontend/src/api/client.test.ts`
+- Modify: `README.md`
+- Modify: `docs/project-design.md`
+- Modify: `docs/technical-direction.md`
+- Modify: `docs/mvp-acceptance-report.md`
+
+**产出接口：**
+
+- `POST /index/run -> 202 Accepted`
+- 响应中的 job 初始状态为 `queued`。
+- 后台任务执行时把 job 切换为 `running`，完成后写入 `completed`、`completed_with_errors` 或 `failed`。
+
+**步骤：**
+
+- [x] 为后台索引触发写失败测试。
+- [x] 让 `IndexJobRepository.create()` 支持创建 `queued` 任务。
+- [x] 增加 `mark_running()`，供后台任务开始执行时更新状态。
+- [x] 让 `IndexingPipeline.run_source_index()` 可复用已创建的 job。
+- [x] 让 `POST /index/run` 创建 queued job 并注册 FastAPI BackgroundTasks。
+- [x] 更新前端 API client 测试里的 `runIndex()` 预期。
+- [x] 更新 README、设计文档、技术路线、验收报告和实施计划。
+
+**完成记录：**
+
+- `POST /index/run` 已从同步请求内执行改为 `202 Accepted + queued job + 后台执行`。
+- 后台执行使用新的数据库 session，不复用请求 session。
+- TestClient 中后台任务执行完成后，`GET /index/jobs` 可看到 completed 状态，`POST /search` 可命中新索引内容。
+- 当前方案使用 FastAPI BackgroundTasks，适合本地 MVP；如果后续需要进程崩溃恢复、任务重试、并发限制或跨进程 worker，应演进为持久化任务队列。
+
+**验收标准：**
+
+- `POST /index/run` 不再返回请求内同步完成结果。
+- 索引任务可通过 `GET /index/jobs` 追踪状态。
+- 后台任务完成后，搜索接口能命中新索引内容。
+
 ## 6. 每周追踪模板
 
 每周结束时更新一次：
@@ -999,14 +1044,14 @@ MVP 完成后，用户应该能做到：
 
 ## 9. 当前阶段建议推进顺序
 
-截至本次复验，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI。后端已补充本地 Vite Web UI CORS 和 Chat 英文自然问句弱词过滤回归。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
+截至本次复验，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI；Task 22 已把 `POST /index/run` 演进为后台任务触发。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
 
 下一步优先推进：
 
 1. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，补充真实后端浏览器 E2E、真实本地目录索引和生产构建复验结果。
 2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果。
-3. 将 `POST /index/run` 从同步执行演进为后台任务，避免大目录索引阻塞请求。
-4. 推进真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
+3. 推进真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
+4. 评估是否需要把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 
 ## 10. 阶段验收门
 

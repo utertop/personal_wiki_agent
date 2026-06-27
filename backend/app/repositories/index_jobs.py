@@ -13,13 +13,13 @@ class IndexJobRepository:
         """保存当前索引任务使用的数据库 session。"""
         self.session = session
 
-    def create(self, source_id: int) -> IndexJob:
-        """创建一个运行中的索引任务记录。"""
+    def create(self, source_id: int, status: str = "running") -> IndexJob:
+        """创建一个索引任务记录；API 后台任务先写入 queued，流水线直跑时写入 running。"""
         now = datetime.utcnow()
         job = IndexJob(
             source_id=source_id,
-            status="running",
-            started_at=now,
+            status=status,
+            started_at=now if status == "running" else None,
             total_items=0,
             processed_items=0,
             failed_items=0,
@@ -27,6 +27,17 @@ class IndexJobRepository:
             updated_at=now,
         )
         self.session.add(job)
+        self.session.commit()
+        self.session.refresh(job)
+        return job
+
+    def mark_running(self, job_id: int) -> IndexJob:
+        """把已排队任务切换为 running，并记录实际开始执行时间。"""
+        job = self.session.get(IndexJob, job_id)
+        now = datetime.utcnow()
+        job.status = "running"
+        job.started_at = now
+        job.updated_at = now
         self.session.commit()
         self.session.refresh(job)
         return job

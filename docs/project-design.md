@@ -781,7 +781,7 @@ API 设计原则：
 
 Memory API 已按 Task 17 最终契约集成：`POST /memory` 请求体为 `{memory_type, content, source, confidence?, expires_at?}`，返回单条 memory；`GET /memory?query=&memory_type=&limit=` 返回 `{items:[...]}`，只包含 active 且未过期的 memory。Chat 响应已新增 `memories_used`，用于和文档来源 `citations` 区分。
 
-Source / Index API 已按当前 MVP 契约集成：`GET /sources` 返回 `{items:[...]}`；`POST /sources` 支持 `local_directory`、`local_synced_notes`、`obsidian_vault` 三类本地优先 source；`POST /index/run` 可按 `source_id` 触发单个 source 索引，也可在不传 `source_id` 时索引全部启用 source；`GET /index/jobs` 返回最近索引任务，并带 `source_name` 方便 UI 展示。
+Source / Index API 已按当前 MVP 契约集成：`GET /sources` 返回 `{items:[...]}`；`POST /sources` 支持 `local_directory`、`local_synced_notes`、`obsidian_vault` 三类本地优先 source；`POST /index/run` 返回 `202 Accepted`，可按 `source_id` 为单个 source 创建 `queued` 后台索引任务，也可在不传 `source_id` 时为全部启用 source 创建后台任务；`GET /index/jobs` 返回最近索引任务，并带 `source_name` 方便 UI 展示。
 
 ### 8.11 UI 模块
 

@@ -101,14 +101,14 @@ describe("Personal Wiki API 客户端", () => {
                 job_id: 10,
                 source_id: 2,
                 source_name: "Obsidian",
-                status: "completed",
-                total_items: 1,
-                processed_items: 1,
+                status: "queued",
+                total_items: 0,
+                processed_items: 0,
                 failed_items: 0,
               },
             ],
           }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
+          { status: 202, headers: { "Content-Type": "application/json" } },
         ),
       )
       .mockResolvedValueOnce(
@@ -139,7 +139,7 @@ describe("Personal Wiki API 客户端", () => {
       name: "Obsidian",
       uri: "E:/Vault",
     });
-    expect((await client.runIndex({ source_id: 2 })).jobs[0].status).toBe("completed");
+    expect((await client.runIndex({ source_id: 2 })).jobs[0].status).toBe("queued");
     expect((await client.listIndexJobs()).items[0].source_name).toBe("Obsidian");
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/sources", expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/index/run", expect.objectContaining({ method: "POST" }));

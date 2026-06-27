@@ -66,7 +66,7 @@ def test_sources_api_rejects_unsupported_source_type(tmp_path) -> None:
 
 
 def test_index_api_runs_source_and_lists_jobs(tmp_path) -> None:
-    """验证 Index API 可以触发单个 source 索引，并返回任务列表。"""
+    """验证 Index API 会先返回排队任务，再由后台任务完成索引并写入搜索结果。"""
 
     note = tmp_path / "rag.md"
     note.write_text("# RAG\n\nRAG personal wiki content", encoding="utf-8")
@@ -84,19 +84,20 @@ def test_index_api_runs_source_and_lists_jobs(tmp_path) -> None:
     jobs_response = client.get("/index/jobs")
     search_response = client.post("/search", json={"query": "RAG", "top_k": 5})
 
-    assert run_response.status_code == 200
+    assert run_response.status_code == 202
     run_body = run_response.json()
     assert len(run_body["jobs"]) == 1
-    assert run_body["jobs"][0]["status"] == "completed"
-    assert run_body["jobs"][0]["processed_items"] == 1
+    assert run_body["jobs"][0]["status"] == "queued"
+    assert run_body["jobs"][0]["processed_items"] == 0
     assert jobs_response.status_code == 200
     assert jobs_response.json()["items"][0]["source_name"] == "索引资料"
+    assert jobs_response.json()["items"][0]["status"] == "completed"
     assert search_response.status_code == 200
     assert search_response.json()["results"][0]["document"]["title"] == "rag"
 
 
 def test_index_api_runs_all_enabled_sources(tmp_path) -> None:
-    """验证 Index API 不指定 source_id 时会索引全部启用数据源。"""
+    """验证 Index API 不指定 source_id 时会为全部启用数据源创建后台索引任务。"""
 
     first = tmp_path / "first"
     second = tmp_path / "second"
@@ -110,9 +111,10 @@ def test_index_api_runs_all_enabled_sources(tmp_path) -> None:
 
     response = client.post("/index/run", json={})
 
-    assert response.status_code == 200
+    assert response.status_code == 202
     body = response.json()
     assert len(body["jobs"]) == 2
+    assert {job["status"] for job in body["jobs"]} == {"queued"}
     assert {job["source_name"] for job in body["jobs"]} == {"第一目录", "第二目录"}
 
 

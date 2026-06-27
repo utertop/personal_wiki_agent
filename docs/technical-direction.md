@@ -424,11 +424,11 @@ Notion 的 API 相对清晰，可以作为后续云端 connector 的参考样板
 
 ## 9. 下一步
 
-当前下一步不是重新创建项目骨架，也不是继续扩大前端页面，而是用真实后端和真实本地目录做端到端联调，并把真实模型 provider 接入排上日程。真实后端浏览器 E2E 本次受执行环境限制未完成，仍保留为下一步优先验收项。
+当前下一步不是重新创建项目骨架，也不是继续扩大前端页面，而是用真实后端和真实本地目录做端到端联调，并把真实模型 provider 接入排上日程。真实后端浏览器 E2E 本次受执行环境限制未完成，仍保留为下一步优先验收项。`POST /index/run` 已演进为 `202 Accepted + queued job + FastAPI BackgroundTasks`，后续如需更强可靠性再升级为持久化任务队列和独立 worker。
 
 建议优先处理：
 
-1. 用真实后端和真实本地目录执行一次端到端验证：创建 source、运行索引、搜索、问答、打开来源、使用记忆。
+1. 用真实后端和真实本地目录执行一次端到端验证：创建 source、触发后台索引、搜索、问答、打开来源、使用记忆。
 2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果，并补齐生产构建输出验证。
 3. 按 [mvp-acceptance-report.md](mvp-acceptance-report.md) 更新真实后端浏览器 E2E 和生产构建复验记录。
 4. 推进真实模型 provider HTTP client，让 Chat API 从 fake client 验证进入真实模型调用验证。

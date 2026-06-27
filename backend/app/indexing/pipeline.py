@@ -64,13 +64,15 @@ class IndexingPipeline:
         self.lexical_index = lexical_index
         self.connector_types = connector_types or _default_connector_types()
 
-    def run_source_index(self, source_id: int) -> IndexJob:
-        """对单个数据源执行一次增量索引，并返回可查询的 IndexJob 记录。"""
+    def run_source_index(self, source_id: int, job_id: Optional[int] = None) -> IndexJob:
+        """对单个数据源执行一次增量索引；可复用 API 预先创建的后台任务记录。"""
         source = self.sources.get(source_id)
         if source is None:
+            if job_id is not None:
+                return self.jobs.mark_failed(job_id, f"source_not_found: {source_id}")
             raise ValueError(f"source_not_found: {source_id}")
 
-        job = self.jobs.create(source_id=source.source_id)
+        job = self.jobs.mark_running(job_id) if job_id is not None else self.jobs.create(source_id=source.source_id)
         try:
             connector = self._build_connector(source)
             sync_result = connector.scan()
