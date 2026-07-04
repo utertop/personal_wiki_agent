@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.models.source import Source
 
 
@@ -55,7 +55,7 @@ class SourceRepository:
             source.name = name
         if enabled is not None:
             source.enabled = enabled
-        source.updated_at = datetime.utcnow()
+        source.updated_at = utc_now()
 
         self.session.commit()
         self.session.refresh(source)

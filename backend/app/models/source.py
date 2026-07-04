@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
 
+from app.core.time import utc_now
 from app.db.base import Base
 
 
@@ -20,7 +19,7 @@ class Source(Base):
     config_hash = Column(String(128), nullable=True)
     enabled = Column(Boolean, nullable=False, default=True)
     last_sync_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
 
     documents = relationship("Document", back_populates="source")

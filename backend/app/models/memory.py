@@ -1,7 +1,6 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 
+from app.core.time import utc_now
 from app.db.base import Base
 
 
@@ -16,6 +15,6 @@ class Memory(Base):
     source = Column(String(255), nullable=False)
     confidence = Column(Float, nullable=False, default=1.0)
     status = Column(String(64), nullable=False, default="active")
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
     expires_at = Column(DateTime, nullable=True)

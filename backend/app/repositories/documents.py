@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.indexing.sync import DocumentSnapshot
 from app.models.chunk import Chunk
 from app.models.document import Document
@@ -87,7 +87,7 @@ class DocumentRepository:
             return None
 
         document.status = status
-        document.updated_at = datetime.utcnow()
+        document.updated_at = utc_now()
         self.session.commit()
         self.session.refresh(document)
         return document
@@ -138,7 +138,7 @@ class DocumentRepository:
         document.mime_type = mime_type
         document.metadata_json = metadata_json or {}
         document.status = status
-        document.updated_at = datetime.utcnow()
+        document.updated_at = utc_now()
         self.session.commit()
         self.session.refresh(document)
         return document

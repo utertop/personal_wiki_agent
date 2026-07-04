@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 import pytest
@@ -219,7 +219,7 @@ def test_memory_store_search_excludes_expired_and_inactive_records() -> None:
                 source="manual",
                 confidence=1.0,
                 status="active",
-                expires_at=datetime.utcnow() - timedelta(days=1),
+                expires_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1),
             ),
             Memory(
                 memory_type="user_preference",

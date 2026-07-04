@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import relationship
 
+from app.core.time import utc_now
 from app.db.base import Base
 
 
@@ -22,8 +21,8 @@ class Document(Base):
     mirror_uri = Column(String(1024), nullable=True)
     metadata_json = Column(JSON, nullable=False, default=dict)
     status = Column(String(64), nullable=False, default="active")
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
     indexed_at = Column(DateTime, nullable=True)
 
     source = relationship("Source", back_populates="documents")

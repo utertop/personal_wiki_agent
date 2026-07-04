@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.models.index_job import IndexJob
 
 
@@ -15,7 +15,7 @@ class IndexJobRepository:
 
     def create(self, source_id: int, status: str = "running") -> IndexJob:
         """创建一个索引任务记录；API 后台任务先写入 queued，流水线直跑时写入 running。"""
-        now = datetime.utcnow()
+        now = utc_now()
         job = IndexJob(
             source_id=source_id,
             status=status,
@@ -34,7 +34,7 @@ class IndexJobRepository:
     def mark_running(self, job_id: int) -> IndexJob:
         """把已排队任务切换为 running，并记录实际开始执行时间。"""
         job = self.session.get(IndexJob, job_id)
-        now = datetime.utcnow()
+        now = utc_now()
         job.status = "running"
         job.started_at = now
         job.updated_at = now
@@ -58,7 +58,7 @@ class IndexJobRepository:
         job.total_items = total_items
         job.processed_items = processed_items
         job.failed_items = failed_items
-        job.updated_at = datetime.utcnow()
+        job.updated_at = utc_now()
         self.session.commit()
         self.session.refresh(job)
         return job
@@ -74,7 +74,7 @@ class IndexJobRepository:
     ) -> IndexJob:
         """结束索引任务，并保存最终状态、统计和错误摘要。"""
         job = self.session.get(IndexJob, job_id)
-        now = datetime.utcnow()
+        now = utc_now()
         job.status = status
         job.total_items = total_items
         job.processed_items = processed_items
@@ -89,7 +89,7 @@ class IndexJobRepository:
     def mark_failed(self, job_id: int, error_message: str) -> IndexJob:
         """在 source 级异常时把任务标记为 failed。"""
         job = self.session.get(IndexJob, job_id)
-        now = datetime.utcnow()
+        now = utc_now()
         job.status = "failed"
         job.failed_items = max(job.failed_items, 1)
         job.error_message = error_message

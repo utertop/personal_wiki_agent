@@ -4,6 +4,7 @@ from typing import List, Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.db.session import _get_default_session_factory
 from app.models.memory import Memory
 
@@ -60,7 +61,7 @@ class MemoryStore:
         """查询 active 且未过期的记忆，可按内容关键词和类型缩小范围。"""
 
         normalized_limit = _validate_limit(limit)
-        now = datetime.utcnow()
+        now = utc_now()
         statement = self.session.query(Memory).filter(
             Memory.status == "active",
             or_(Memory.expires_at.is_(None), Memory.expires_at > now),

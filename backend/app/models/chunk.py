@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 
+from app.core.time import utc_now
 from app.db.base import Base
 
 
@@ -19,7 +18,7 @@ class Chunk(Base):
     page_number = Column(Integer, nullable=True)
     token_count = Column(Integer, nullable=False, default=0)
     metadata_json = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
 
     document = relationship("Document", back_populates="chunks")

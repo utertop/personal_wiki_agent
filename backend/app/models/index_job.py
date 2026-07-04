@@ -1,7 +1,6 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 
+from app.core.time import utc_now
 from app.db.base import Base
 
 
@@ -19,5 +18,5 @@ class IndexJob(Base):
     processed_items = Column(Integer, nullable=False, default=0)
     failed_items = Column(Integer, nullable=False, default=0)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    updated_at = Column(DateTime, nullable=False, default=utc_now)
