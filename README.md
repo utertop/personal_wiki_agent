@@ -15,7 +15,7 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 ### 已完成能力
 
 - 后端 FastAPI 应用与 `GET /health` 健康检查。
-- 配置契约：`config/sources.example.yaml` 可描述本地目录、笔记本地同步目录、Obsidian vault、模型 provider 和忽略规则。
+- 配置契约：`config/sources.example.yaml` 可描述本地目录、笔记本地同步目录、Obsidian vault、模型 provider/defaults 和忽略规则；后端可通过 `PERSONAL_WIKI_CONFIG_PATH` 在启动时读取配置。
 - SQLite 模型：`Source`、`Document`、`Chunk`、`IndexJob`、`Memory` 已有基础 schema，其中 Memory 已通过 API 暴露最小创建和查询能力。
 - 本地目录索引流水线：`IndexingPipeline` 可扫描本地 source、增量判断、解析文件、分块、写入元数据，并在配置 `SQLiteFtsIndex` 时写入关键词索引。
 - 检索 API：`POST /search` 返回命中 chunk、分数、文档摘要、数据源摘要和 citation。
@@ -30,7 +30,7 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 
 ### 未完成或待后续增强
 
-- 真实模型 HTTP 调用仍依赖后续 provider 客户端接入；当前测试使用 fake model client 验证 Chat API 契约。
+- OpenAI-compatible provider 层已具备 Chat Completions 调用能力，应用启动时可读取模型配置并从环境变量解析 token 挂载 `ModelRouter`；真实外部服务 smoke test 仍需后续补齐。
 - Web UI 真实后端浏览器 E2E 仍需在普通本地环境或 GitHub Actions 中继续补充；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此未把该项标为完成。
 - 云端笔记 connector、自动写回云端笔记、OCR、复杂自动化工作流、企业级多用户和移动端不属于当前 MVP 已完成范围。
 
@@ -76,7 +76,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests -v
 ```
 
-截至本次复验，后端全量测试为 `83 passed`。
+截至本次复验，后端全量测试为 `89 passed, 1 skipped`，跳过项是真实外部模型 smoke test，默认不会联网或消耗 token。
 
 如需只验证某个模块，可运行：
 
@@ -110,10 +110,35 @@ CI 当前包含三类检查：
 
 - `data_dir`：本地数据目录。
 - `database_url`：SQLite 数据库连接串。
-- `model`：聊天模型、embedding 模型和本地模型 provider 偏好。
+- `model`：聊天模型、embedding 模型、本地模型 provider 偏好、provider 列表和默认模型。
 - `privacy.ignore_patterns`：全局忽略规则，用于排除临时文件、缓存目录和敏感路径。
 
-当前 FastAPI 默认启动时使用安全默认配置；配置文件读取能力已经在 `backend/app/core/settings.py` 中实现。MVP 现在提供 `GET /sources` 和 `POST /sources` 管理数据库 source。将 YAML 配置自动导入数据库 source 仍是后续增强能力。
+模型 token 不写入仓库配置文件。NVIDIA provider 的示例配置使用 `api_key_env: PERSONAL_WIKI_NVIDIA_API_KEY`，启动前在 PowerShell 中设置：
+
+```powershell
+$env:PERSONAL_WIKI_NVIDIA_API_KEY = "你的 NVIDIA API token"
+$env:PERSONAL_WIKI_CONFIG_PATH = "E:\Automatic\personal_wiki_agent\config\sources.example.yaml"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --reload
+```
+
+FastAPI 启动时会读取 `PERSONAL_WIKI_CONFIG_PATH` 指向的 YAML，并按 `model.providers` / `model.defaults` 自动创建 `ModelRouter`。MVP 现在提供 `GET /sources` 和 `POST /sources` 管理数据库 source。将 YAML 配置自动导入数据库 source 仍是后续增强能力。
+
+如果你习惯把本地变量放在 `frontend\.env.local`，真实模型 smoke test 也会读取其中的 `PERSONAL_WIKI_NVIDIA_API_KEY`。不要把密钥写成 `VITE_` 前缀变量；`VITE_` 变量属于前端环境变量，不适合保存服务端 token。
+
+运行真实模型 smoke test：
+
+```powershell
+# 可放在当前 PowerShell，也可放入 frontend\.env.local
+$env:PERSONAL_WIKI_NVIDIA_API_KEY = "你的 NVIDIA API token"
+
+# 可选：NVIDIA OpenAI-compatible 地址和模型名
+$env:PERSONAL_WIKI_SMOKE_BASE_URL = "https://integrate.api.nvidia.com/v1"
+$env:PERSONAL_WIKI_SMOKE_MODEL = "meta/llama-3.1-70b-instruct"
+
+# 必须显式开启，避免普通测试误联网或扣费
+$env:PERSONAL_WIKI_ENABLE_REAL_MODEL_SMOKE = "1"
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_real_model_smoke.py -q
+```
 
 ## 本地目录索引
 

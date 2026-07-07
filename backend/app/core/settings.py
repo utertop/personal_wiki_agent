@@ -20,6 +20,35 @@ class SourceConfig(BaseModel):
     ignore_patterns: List[str] = Field(default_factory=list)
 
 
+class ModelInfoConfig(BaseModel):
+    """描述配置文件中声明的单个模型及其能力。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    display_name: str
+    capabilities: List[str]
+    context_window: Optional[int] = None
+    max_output_tokens: Optional[int] = None
+    embedding_dimensions: Optional[int] = None
+    local: bool = False
+    deprecated: bool = False
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ProviderSettings(BaseModel):
+    """描述一个模型 provider 的非敏感配置。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["openai_compatible", "ollama"]
+    base_url: Optional[str] = None
+    api_key_env: Optional[str] = None
+    enabled: bool = True
+    models: List[ModelInfoConfig] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class ModelConfig(BaseModel):
     """描述模型供应商配置，后续由 ModelProvider 组件消费。"""
 
@@ -28,6 +57,8 @@ class ModelConfig(BaseModel):
     chat_provider: str = "openai-compatible"
     embedding_provider: str = "openai-compatible"
     local_provider: str = "ollama"
+    providers: Dict[str, ProviderSettings] = Field(default_factory=dict)
+    defaults: Dict[str, str] = Field(default_factory=dict)
 
 
 class PrivacyConfig(BaseModel):

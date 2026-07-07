@@ -16,15 +16,16 @@
 
 | 验证命令 | 当前结果 | 说明 |
 | --- | --- | --- |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`84 passed` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归和 UTC 时间工具契约。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`89 passed, 1 skipped` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归、UTC 时间工具契约、OpenAI-compatible provider 调用契约和启动时模型路由挂载；跳过项是真实外部模型 smoke test，需显式环境变量开启。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_memory.py -q` | 通过；`6 passed` | 用于验证 Task 17 Memory API、过滤规则、过期规则和 Chat `memories_used`。 |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`5 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误和英文自然问句弱词过滤。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`6 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误、缺 API token 提示和英文自然问句弱词过滤。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_source_index_api.py -q` | 通过；`5 passed` | 用于验证 Source / Index API、后台索引排队和索引后搜索闭环。 |
 | `npm.cmd test` | 通过；5 个测试文件、8 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图和索引任务视图。 |
 | `npm.cmd exec tsc -- --noEmit` | 通过 | 用于验证 Task 18 前端 TypeScript 类型检查。 |
 | Python Playwright UI 主流程脚本 | 通过；`OK: Playwright UI main flow passed` | 使用 Vite dev server、Chrome 和浏览器路由 mock API，验证默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。 |
 | `npm.cmd run build` | 通过 | 用于验证前端生产构建输出可生成。 |
+| `PERSONAL_WIKI_ENABLE_REAL_MODEL_SMOKE=1 .\.venv\Scripts\python.exe -m pytest backend/tests/test_real_model_smoke.py -q` | 通过；`1 passed` | 使用 NVIDIA OpenAI-compatible provider 和真实模型 `meta/llama-3.1-70b-instruct` 验证 `/chat` 从检索、模型调用到带引用回答的最小闭环。 |
 | `.\.venv\Scripts\python.exe -c "import yaml; ..."` | 通过 | 用于验证 GitHub Actions workflow YAML 可解析。 |
 | `rg -n "<替换字符>" README.md docs rules.md` | 通过；无匹配 | 实际执行时使用 Unicode 替换字符，用于确认 Markdown 中没有乱码替换字符。 |
 | 本地文档与文本卫生脚本 | 通过；`OK: docs and tracked text files passed hygiene checks` | 用于检查已跟踪文本文件中的乱码替换字符、合并冲突标记，以及 Markdown 本地相对链接目标存在。 |
@@ -34,7 +35,7 @@
 | 任务 / 模块 | 验收项 | 验证方式 | 当前结果 | 风险和后续动作 |
 | --- | --- | --- | --- | --- |
 | Task 1 工程骨架 | FastAPI 应用可创建，`GET /health` 可用。 | `backend/tests/test_health.py`；后端主干测试。 | 通过。 | 后端 README 曾停留在“只提供健康检查”口径，顶层 README 已改为当前能力口径。 |
-| Task 2 配置系统 | 可读取 YAML 配置，支持本地目录、同步笔记目录、Obsidian vault、模型和忽略规则。 | `backend/tests/test_settings.py`；检查 `config/sources.example.yaml`。 | 通过。 | YAML 自动导入数据库 source 仍是后续增强；当前已可通过 Source API 创建数据库 source。 |
+| Task 2 配置系统 | 可读取 YAML 配置，支持本地目录、同步笔记目录、Obsidian vault、模型 provider/defaults 和忽略规则；启动时可通过 `PERSONAL_WIKI_CONFIG_PATH` 读取配置。 | `backend/tests/test_settings.py`；`backend/tests/test_app_model_router.py`；检查 `config/sources.example.yaml`。 | 通过。 | YAML 自动导入数据库 source 仍是后续增强；当前已可通过 Source API 创建数据库 source。 |
 | Task 3 数据库与核心模型 | `Source`、`Document`、`Chunk`、`IndexJob`、`Memory` 模型可建表并基础读写。 | `backend/tests/test_models.py`。 | 通过。 | Memory API 已在 Task 17 完成，仍需在后续迁移中维护 schema 演进。 |
 | Task 4 Alembic 迁移 | 初始 schema 可 upgrade / downgrade。 | `backend/tests/test_migrations.py`。 | 通过。 | 后续新增 Memory API 字段或前端所需字段时需追加迁移。 |
 | Task 5 Connector | 本地目录、笔记本地同步目录、Obsidian vault 可扫描并保留来源元数据。 | `backend/tests/test_connectors_base.py`。 | 通过。 | 云端 connector 不属于当前已完成范围。 |
@@ -44,12 +45,12 @@
 | Task 9 索引流水线 | 可扫描 source、解析文件、写入 document/chunk/job，并可接入 FTS。 | `backend/tests/test_indexing_pipeline.py`。 | 通过。 | 流水线仍可被内部同步调用；HTTP 层已通过后台任务避免请求长时间阻塞。 |
 | Task 10 LexicalIndex / FTS5 | SQLite FTS5 可索引、检索、替换、删除 chunk。 | `backend/tests/test_sqlite_fts.py`。 | 通过。 | 中文检索质量仍需真实语料评估，后续可接 Tantivy / Meilisearch adapter。 |
 | Task 11 VectorStore 接口 | Hashing embedder 与内存型向量库满足接口契约。 | `backend/tests/test_vector_store_contract.py`。 | 通过。 | 当前不代表真实语义 embedding 质量，真实向量库接入需后续验证。 |
-| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用。 | `backend/tests/test_model_registry.py`。 | 通过。 | 真实 OpenAI-compatible 或 Ollama HTTP 调用仍待 provider client 实现验证。 |
+| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用；OpenAI-compatible Chat Completions client 已具备真实 HTTP 调用实现；应用启动时可读取模型配置并从环境变量解析 token 挂载 ModelRouter；NVIDIA OpenAI-compatible smoke test 已通过。 | `backend/tests/test_model_registry.py`；`backend/tests/test_app_model_router.py`；`backend/tests/test_real_model_smoke.py`。 | 通过。 | Ollama HTTP 调用仍待 provider client 实现；真实模型 smoke test 默认跳过，避免普通测试误联网或消耗 token。 |
 | Task 13 Hybrid Retriever | 可合并关键词和向量命中，支持过滤和空查询。 | `backend/tests/test_hybrid_retriever.py`。 | 通过。 | 当前主路径依赖 FTS；真实向量召回质量待后续接入验证。 |
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
-| Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实模型 provider HTTP 调用仍需后续验证。 |
+| Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回；provider 缺少 API token 时返回可操作错误提示。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实外部模型服务 smoke test 仍需后续验证。 |
 | Task 16 Agent Tools | `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 可作为后端工具函数使用。 | `backend/tests/test_agent_tools.py`。 | 通过。 | 当前是函数级工具，不是独立 HTTP API；后续如果需要从 Web UI 直接调用，需补稳定 HTTP 或 Agent 编排入口。 |
-| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 84 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
+| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 89 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
 | Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite 开发源跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，Playwright UI 主流程通过，CORS 回归通过，生产构建通过。 | Playwright 当前验证的是前端 UI 主流程，API 为浏览器路由 mock；真实后端浏览器 E2E 本次被当前执行环境拦截，仍需在普通本地环境或 GitHub Actions 中复验。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
 | Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过；`POST /index/run` 已返回 `202 Accepted` 和 `queued` job，并由后台任务执行实际索引。 | 当前后台执行使用 FastAPI BackgroundTasks，适合本地 MVP；后续如需更强可靠性可演进为持久化任务队列和独立 worker。 |
@@ -70,7 +71,7 @@
 ## 未完成能力
 
 - 真实后端浏览器 E2E；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此该项仍未标为完成。
-- 真实模型 provider HTTP 调用、真实 embedding 和持久化向量库。
+- Ollama HTTP client、真实 embedding 和持久化向量库。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 
 ## 文档一致性体检
@@ -116,6 +117,6 @@ npm run build
 ## 后续动作
 
 1. 补充真实后端浏览器 E2E，验证真实本地目录索引、搜索、问答、来源抽屉和记忆使用结果。
-2. 接入真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
+2. 为 Ollama 补真实 HTTP client，并继续保留真实外部模型 smoke test 的显式开关。
 3. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 4. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。

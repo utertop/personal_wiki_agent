@@ -33,6 +33,9 @@ def test_load_settings_reads_example_config() -> None:
         "obsidian_vault",
     ]
     assert settings.model.embedding_provider == "openai-compatible"
+    assert settings.model.providers["openai"].api_key_env == "PERSONAL_WIKI_OPENAI_API_KEY"
+    assert settings.model.providers["nvidia"].api_key_env == "PERSONAL_WIKI_NVIDIA_API_KEY"
+    assert settings.model.defaults["chat"] == "nvidia/meta/llama-3.1-70b-instruct"
     assert "*.tmp" in settings.privacy.ignore_patterns
 
 

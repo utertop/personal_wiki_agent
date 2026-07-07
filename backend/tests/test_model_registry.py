@@ -1,5 +1,6 @@
 import pytest
 
+from app.answer.context_builder import AnswerCitation, AnswerContext, AnswerContextItem
 from app.llm.catalog import ModelCatalog
 from app.llm.openai_provider import OpenAICompatibleProvider
 from app.llm.ollama_provider import OllamaProvider
@@ -60,6 +61,106 @@ def test_openai_compatible_provider_validates_api_key_and_lists_configured_model
     ]
     assert configured.get_chat_client("chat-model").model_id == "chat-model"
     assert configured.get_embedding_client("embedding-model").model_id == "embedding-model"
+
+
+def test_openai_compatible_chat_client_requires_api_key_before_generation() -> None:
+    """验证真实 Chat client 创建前会阻止缺失 API key 的 provider。"""
+
+    provider = OpenAICompatibleProvider(
+        ProviderConfig(
+            provider_id="openai",
+            provider_type="openai_compatible",
+            base_url="https://api.openai.example/v1",
+            models=[
+                ModelInfo(
+                    provider_id="openai",
+                    model_id="chat-model",
+                    display_name="Chat Model",
+                    capabilities=["chat"],
+                )
+            ],
+        )
+    )
+
+    with pytest.raises(ProviderConfigurationError, match="missing_api_key"):
+        provider.get_chat_client("chat-model")
+
+
+def test_openai_compatible_chat_client_posts_context_and_returns_answer() -> None:
+    """验证 OpenAI-compatible Chat client 会发送知识库上下文并解析模型回答。"""
+
+    calls = []
+
+    def fake_transport(url, headers, payload, timeout):
+        calls.append(
+            {
+                "url": url,
+                "headers": headers,
+                "payload": payload,
+                "timeout": timeout,
+            }
+        )
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "可以用 RAG 先检索资料，再基于引用回答。",
+                    }
+                }
+            ]
+        }
+
+    provider = OpenAICompatibleProvider(
+        ProviderConfig(
+            provider_id="openai",
+            provider_type="openai_compatible",
+            base_url="https://api.openai.example/v1/",
+            api_key="sk-test",
+            models=[
+                ModelInfo(
+                    provider_id="openai",
+                    model_id="chat-model",
+                    display_name="Chat Model",
+                    capabilities=["chat"],
+                )
+            ],
+        ),
+        transport=fake_transport,
+    )
+    context = AnswerContext(
+        items=[
+            AnswerContextItem(
+                text="RAG 会先检索个人知识库，再把相关片段交给模型生成回答。",
+                score=0.92,
+                citation=AnswerCitation(
+                    document_id=1,
+                    chunk_id=2,
+                    source_id=3,
+                    document_title="RAG 笔记",
+                    heading_path="检索增强生成",
+                ),
+            )
+        ],
+        total_results=1,
+        personalization_memories=[
+            {
+                "memory_type": "user_preference",
+                "content": "用户偏好中文回答。",
+            }
+        ],
+    )
+
+    client = provider.get_chat_client("chat-model")
+    answer = client.generate_answer(question="RAG 怎么工作？", context=context)
+
+    assert answer == "可以用 RAG 先检索资料，再基于引用回答。"
+    assert calls[0]["url"] == "https://api.openai.example/v1/chat/completions"
+    assert calls[0]["headers"]["Authorization"] == "Bearer sk-test"
+    assert calls[0]["payload"]["model"] == "chat-model"
+    assert calls[0]["payload"]["temperature"] == 0.2
+    assert "RAG 怎么工作？" in calls[0]["payload"]["messages"][-1]["content"]
+    assert "RAG 会先检索个人知识库" in calls[0]["payload"]["messages"][-1]["content"]
+    assert "用户偏好中文回答" in calls[0]["payload"]["messages"][-1]["content"]
 
 
 def test_ollama_provider_uses_local_config_without_api_key() -> None:

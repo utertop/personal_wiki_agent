@@ -26,6 +26,49 @@ model:
   chat_provider: openai-compatible
   embedding_provider: openai-compatible
   local_provider: ollama
+  providers:
+    openai:
+      type: openai_compatible
+      base_url: https://api.openai.com/v1
+      api_key_env: PERSONAL_WIKI_OPENAI_API_KEY
+      enabled: false
+      models:
+        - id: chat-model
+          display_name: OpenAI-compatible Chat
+          capabilities:
+            - chat
+            - summary
+        - id: embedding-model
+          display_name: OpenAI-compatible Embedding
+          capabilities:
+            - embedding
+          embedding_dimensions: 1536
+    nvidia:
+      type: openai_compatible
+      base_url: https://integrate.api.nvidia.com/v1
+      api_key_env: PERSONAL_WIKI_NVIDIA_API_KEY
+      enabled: true
+      models:
+        - id: meta/llama-3.1-70b-instruct
+          display_name: NVIDIA Llama 3.1 70B Instruct
+          capabilities:
+            - chat
+            - summary
+    ollama:
+      type: ollama
+      base_url: http://localhost:11434
+      enabled: false
+      models:
+        - id: qwen3
+          display_name: Qwen Local
+          capabilities:
+            - chat
+            - local
+          local: true
+  defaults:
+    chat: nvidia/meta/llama-3.1-70b-instruct
+    summary: nvidia/meta/llama-3.1-70b-instruct
+    embedding: openai/embedding-model
 
 privacy:
   ignore_patterns:

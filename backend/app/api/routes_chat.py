@@ -194,6 +194,13 @@ def _error_message(code: str) -> str:
     messages: Dict[str, str] = {
         "chat_model_not_configured": "还没有配置可用的聊天模型，请先配置 ModelRouter 或 chat provider。",
         "chat_generation_not_implemented": "当前模型客户端还没有实现真实回答生成能力。",
+        "missing_api_key": "聊天模型缺少 API token，请先在本地环境或凭证配置中填写对应 provider 的密钥。",
+        "missing_base_url": "聊天模型缺少 base_url，请先配置 OpenAI-compatible provider 的 API 地址。",
+        "chat_response_invalid_json": "聊天模型返回了无法解析的 JSON，请检查 provider 地址或兼容性。",
+        "chat_response_invalid_shape": "聊天模型返回结构不符合预期，请检查 provider 是否兼容 Chat Completions。",
+        "chat_response_missing_content": "聊天模型响应中缺少回答内容，请检查 provider 返回格式。",
         "empty_model_answer": "聊天模型返回了空答案，请检查模型服务或提示词配置。",
     }
+    if code.startswith("chat_request_failed"):
+        return f"聊天模型请求失败：{code}"
     return messages.get(code, f"聊天模型配置不可用：{code}")

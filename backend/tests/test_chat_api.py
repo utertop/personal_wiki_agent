@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.indexing.sqlite_fts import SQLiteFtsIndex
-from app.llm.provider import ModelInfo
+from app.llm.provider import ModelInfo, ProviderConfigurationError
 from app.main import create_app
 from app.repositories.documents import DocumentRepository
 from app.repositories.sources import SourceRepository
@@ -73,6 +73,32 @@ class FakeModelRouter:
     def select_model(self, task: str) -> FakeSelection:
         """记录路由任务并返回 fake 模型选择。"""
         self.last_task = task
+        return FakeSelection(task=task, provider=self.provider, model=self.model)
+
+
+class MissingKeyProvider:
+    """测试用 provider：模拟真实 provider 缺少 API key。"""
+
+    provider_id = "openai"
+
+    def get_chat_client(self, model_id: str):
+        """模拟 provider 在创建 chat client 时发现密钥缺失。"""
+        raise ProviderConfigurationError("missing_api_key")
+
+
+class MissingKeyModelRouter:
+    """测试用 router：返回缺少 API key 的 provider。"""
+
+    def __init__(self) -> None:
+        self.provider = MissingKeyProvider()
+        self.model = ModelInfo(
+            provider_id="openai",
+            model_id="chat",
+            display_name="Chat",
+            capabilities=["chat"],
+        )
+
+    def select_model(self, task: str) -> FakeSelection:
         return FakeSelection(task=task, provider=self.provider, model=self.model)
 
 
@@ -234,6 +260,18 @@ def test_chat_api_returns_understandable_error_without_model_router() -> None:
 
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "chat_model_not_configured"
+
+
+def test_chat_api_returns_specific_message_when_provider_api_key_is_missing() -> None:
+    """验证真实 provider 缺少 API key 时，Chat API 返回可操作提示。"""
+
+    client, _, _ = make_client_with_indexed_knowledge(MissingKeyModelRouter())
+
+    response = client.post("/chat", json={"message": "RAG 怎么帮助个人知识库？"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "missing_api_key"
+    assert "API token" in response.json()["detail"]["message"]
 
 
 def test_chat_api_rejects_invalid_top_k() -> None:
