@@ -192,6 +192,70 @@ def test_ollama_provider_uses_local_config_without_api_key() -> None:
     assert models[0].local is True
 
 
+def test_ollama_chat_client_posts_context_and_returns_answer() -> None:
+    """验证 Ollama Chat client 会调用本地 /api/chat 并解析回答。"""
+
+    calls = []
+
+    def fake_transport(url, payload, timeout):
+        calls.append(
+            {
+                "url": url,
+                "payload": payload,
+                "timeout": timeout,
+            }
+        )
+        return {
+            "message": {
+                "content": "本地 Ollama 可以基于检索片段回答问题。",
+            }
+        }
+
+    provider = OllamaProvider(
+        ProviderConfig(
+            provider_id="ollama",
+            provider_type="ollama",
+            base_url="http://localhost:11434/",
+            models=[
+                ModelInfo(
+                    provider_id="ollama",
+                    model_id="qwen3",
+                    display_name="Qwen Local",
+                    capabilities=["chat", "local"],
+                    local=True,
+                )
+            ],
+        ),
+        transport=fake_transport,
+    )
+    context = AnswerContext(
+        items=[
+            AnswerContextItem(
+                text="RAG 会先检索个人知识库，再把相关片段交给模型生成回答。",
+                score=0.92,
+                citation=AnswerCitation(
+                    document_id=1,
+                    chunk_id=2,
+                    source_id=3,
+                    document_title="RAG 笔记",
+                    heading_path="检索增强生成",
+                ),
+            )
+        ],
+        total_results=1,
+    )
+
+    client = provider.get_chat_client("qwen3")
+    answer = client.generate_answer(question="RAG 怎么工作？", context=context)
+
+    assert answer == "本地 Ollama 可以基于检索片段回答问题。"
+    assert calls[0]["url"] == "http://localhost:11434/api/chat"
+    assert calls[0]["payload"]["model"] == "qwen3"
+    assert calls[0]["payload"]["stream"] is False
+    assert "RAG 怎么工作？" in calls[0]["payload"]["messages"][-1]["content"]
+    assert "RAG 会先检索个人知识库" in calls[0]["payload"]["messages"][-1]["content"]
+
+
 def test_model_registry_refreshes_catalog_from_registered_providers() -> None:
     """验证模型注册表可以从已注册 Provider 刷新模型目录。"""
 

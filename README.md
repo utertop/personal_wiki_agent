@@ -76,7 +76,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests -v
 ```
 
-截至本次复验，后端全量测试为 `89 passed, 1 skipped`，跳过项是真实外部模型 smoke test，默认不会联网或消耗 token。
+截至本次复验，后端全量测试为 `90 passed, 2 skipped`，跳过项是真实外部模型和本地 Ollama smoke test，默认不会联网、访问本地模型服务或消耗 token。
 
 如需只验证某个模块，可运行：
 
@@ -138,6 +138,16 @@ $env:PERSONAL_WIKI_SMOKE_MODEL = "meta/llama-3.1-70b-instruct"
 # 必须显式开启，避免普通测试误联网或扣费
 $env:PERSONAL_WIKI_ENABLE_REAL_MODEL_SMOKE = "1"
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_real_model_smoke.py -q
+```
+
+运行本地 Ollama smoke test：
+
+```powershell
+# 需要本机 Ollama 已启动，并且模型已 pull 到本地
+$env:PERSONAL_WIKI_OLLAMA_BASE_URL = "http://localhost:11434"
+$env:PERSONAL_WIKI_OLLAMA_MODEL = "qwen3"
+$env:PERSONAL_WIKI_ENABLE_OLLAMA_SMOKE = "1"
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_ollama_smoke.py -q
 ```
 
 ## 本地目录索引

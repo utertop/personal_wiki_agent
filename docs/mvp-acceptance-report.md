@@ -16,7 +16,7 @@
 
 | 验证命令 | 当前结果 | 说明 |
 | --- | --- | --- |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`89 passed, 1 skipped` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归、UTC 时间工具契约、OpenAI-compatible provider 调用契约和启动时模型路由挂载；跳过项是真实外部模型 smoke test，需显式环境变量开启。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`90 passed, 2 skipped` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归、UTC 时间工具契约、OpenAI-compatible / Ollama provider 调用契约和启动时模型路由挂载；跳过项是真实外部模型与本地 Ollama smoke test，需显式环境变量开启。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_memory.py -q` | 通过；`6 passed` | 用于验证 Task 17 Memory API、过滤规则、过期规则和 Chat `memories_used`。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`6 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误、缺 API token 提示和英文自然问句弱词过滤。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
@@ -45,7 +45,7 @@
 | Task 9 索引流水线 | 可扫描 source、解析文件、写入 document/chunk/job，并可接入 FTS。 | `backend/tests/test_indexing_pipeline.py`。 | 通过。 | 流水线仍可被内部同步调用；HTTP 层已通过后台任务避免请求长时间阻塞。 |
 | Task 10 LexicalIndex / FTS5 | SQLite FTS5 可索引、检索、替换、删除 chunk。 | `backend/tests/test_sqlite_fts.py`。 | 通过。 | 中文检索质量仍需真实语料评估，后续可接 Tantivy / Meilisearch adapter。 |
 | Task 11 VectorStore 接口 | Hashing embedder 与内存型向量库满足接口契约。 | `backend/tests/test_vector_store_contract.py`。 | 通过。 | 当前不代表真实语义 embedding 质量，真实向量库接入需后续验证。 |
-| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用；OpenAI-compatible Chat Completions client 已具备真实 HTTP 调用实现；应用启动时可读取模型配置并从环境变量解析 token 挂载 ModelRouter；NVIDIA OpenAI-compatible smoke test 已通过。 | `backend/tests/test_model_registry.py`；`backend/tests/test_app_model_router.py`；`backend/tests/test_real_model_smoke.py`。 | 通过。 | Ollama HTTP 调用仍待 provider client 实现；真实模型 smoke test 默认跳过，避免普通测试误联网或消耗 token。 |
+| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用；OpenAI-compatible Chat Completions client 和 Ollama `/api/chat` client 已具备真实 HTTP 调用实现；应用启动时可读取模型配置并挂载 ModelRouter；NVIDIA OpenAI-compatible smoke test 已通过。 | `backend/tests/test_model_registry.py`；`backend/tests/test_app_model_router.py`；`backend/tests/test_real_model_smoke.py`；`backend/tests/test_ollama_smoke.py`。 | 通过。 | Ollama 本地 smoke test 已提供显式开关，需本机 Ollama 服务和模型就绪后手动运行；真实模型 smoke test 默认跳过，避免普通测试误联网或消耗 token。 |
 | Task 13 Hybrid Retriever | 可合并关键词和向量命中，支持过滤和空查询。 | `backend/tests/test_hybrid_retriever.py`。 | 通过。 | 当前主路径依赖 FTS；真实向量召回质量待后续接入验证。 |
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
 | Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回；provider 缺少 API token 时返回可操作错误提示。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实外部模型服务 smoke test 仍需后续验证。 |
@@ -71,7 +71,7 @@
 ## 未完成能力
 
 - 真实后端浏览器 E2E；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此该项仍未标为完成。
-- Ollama HTTP client、真实 embedding 和持久化向量库。
+- Ollama 本地 smoke test 执行结果、真实 embedding 和持久化向量库。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 
 ## 文档一致性体检
@@ -117,6 +117,6 @@ npm run build
 ## 后续动作
 
 1. 补充真实后端浏览器 E2E，验证真实本地目录索引、搜索、问答、来源抽屉和记忆使用结果。
-2. 为 Ollama 补真实 HTTP client，并继续保留真实外部模型 smoke test 的显式开关。
+2. 本机 Ollama 服务和模型就绪后，执行 `backend/tests/test_ollama_smoke.py` 验证本地模型闭环。
 3. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 4. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。
