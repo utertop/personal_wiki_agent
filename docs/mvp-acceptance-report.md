@@ -24,6 +24,7 @@
 | `npm.cmd test` | 通过；5 个测试文件、8 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图和索引任务视图。 |
 | `npm.cmd exec tsc -- --noEmit` | 通过 | 用于验证 Task 18 前端 TypeScript 类型检查。 |
 | Python Playwright UI 主流程脚本 | 通过；`OK: Playwright UI main flow passed` | 使用 Vite dev server、Chrome 和浏览器路由 mock API，验证默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。 |
+| `npm.cmd run test:e2e` | 通过；`1 passed` | 使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，验证创建 source、触发索引、Chat 提问、引用和来源抽屉。 |
 | `npm.cmd run build` | 通过 | 用于验证前端生产构建输出可生成。 |
 | `PERSONAL_WIKI_ENABLE_REAL_MODEL_SMOKE=1 .\.venv\Scripts\python.exe -m pytest backend/tests/test_real_model_smoke.py -q` | 通过；`1 passed` | 使用 NVIDIA OpenAI-compatible provider 和真实模型 `meta/llama-3.1-70b-instruct` 验证 `/chat` 从检索、模型调用到带引用回答的最小闭环。 |
 | `.\.venv\Scripts\python.exe -c "import yaml; ..."` | 通过 | 用于验证 GitHub Actions workflow YAML 可解析。 |
@@ -50,8 +51,8 @@
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
 | Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回；provider 缺少 API token 时返回可操作错误提示。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实外部模型服务 smoke test 仍需后续验证。 |
 | Task 16 Agent Tools | `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 可作为后端工具函数使用。 | `backend/tests/test_agent_tools.py`。 | 通过。 | 当前是函数级工具，不是独立 HTTP API；后续如果需要从 Web UI 直接调用，需补稳定 HTTP 或 Agent 编排入口。 |
-| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 89 passed。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
-| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite 开发源跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，Playwright UI 主流程通过，CORS 回归通过，生产构建通过。 | Playwright 当前验证的是前端 UI 主流程，API 为浏览器路由 mock；真实后端浏览器 E2E 本次被当前执行环境拦截，仍需在普通本地环境或 GitHub Actions 中复验。 |
+| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 90 passed、2 skipped。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
+| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite Web UI 跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；`npm.cmd run test:e2e`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，真实后端浏览器 E2E 通过，Playwright UI mock 主流程通过，CORS 回归通过，生产构建通过。 | 真实后端浏览器 E2E 当前使用内存 SQLite 和 fake model router；如需覆盖真实外部模型，可后续增加显式开启的慢速 E2E。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
 | Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过；`POST /index/run` 已返回 `202 Accepted` 和 `queued` job，并由后台任务执行实际索引。 | 当前后台执行使用 FastAPI BackgroundTasks，适合本地 MVP；后续如需更强可靠性可演进为持久化任务队列和独立 worker。 |
 | Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
@@ -70,7 +71,7 @@
 
 ## 未完成能力
 
-- 真实后端浏览器 E2E；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此该项仍未标为完成。
+- 更长链路的真实资料夹浏览器 E2E，以及可选真实外部模型浏览器 E2E。
 - Ollama 本地 smoke test 执行结果、真实 embedding 和持久化向量库。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 
@@ -108,15 +109,17 @@ Pop-Location
 ```powershell
 cd frontend
 npm install
+npx playwright install chromium
 npm run dev
+npm run test:e2e
 npm run build
 ```
 
-本次已验证 `npm.cmd test`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd run build` 和 Python Playwright UI 主流程脚本。`npm run dev` 用于本地手动浏览器验收，本报告不保留常驻开发服务器。
+本次已验证 `npm.cmd test`、`npm.cmd exec tsc -- --noEmit`、`npm.cmd run test:e2e`、`npm.cmd run build` 和 Python Playwright UI 主流程脚本。`npm run dev` 用于本地手动浏览器验收，本报告不保留常驻开发服务器。
 
 ## 后续动作
 
-1. 补充真实后端浏览器 E2E，验证真实本地目录索引、搜索、问答、来源抽屉和记忆使用结果。
+1. 补充 Memory 管理 UI，提供长期记忆查看、搜索、手动新增和归档入口。
 2. 本机 Ollama 服务和模型就绪后，执行 `backend/tests/test_ollama_smoke.py` 验证本地模型闭环。
 3. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 4. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。

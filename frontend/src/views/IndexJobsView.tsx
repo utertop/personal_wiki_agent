@@ -18,14 +18,16 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
   }, [client]);
 
   /** 从后端加载最近索引任务。 */
-  async function loadJobs() {
+  async function loadJobs(): Promise<IndexJobRecord[]> {
     setIsLoading(true);
     setError(null);
     try {
       const response = await client.listIndexJobs();
       setJobs(response.items);
+      return response.items;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "索引任务加载失败");
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -41,11 +43,22 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
     setError(null);
     try {
       await client.runIndex({});
-      await loadJobs();
+      await pollJobsUntilSettled();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "索引任务触发失败");
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  /** 后台索引任务返回 queued 后，短轮询直到任务进入终态，减少手动刷新。 */
+  async function pollJobsUntilSettled() {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const latestJobs = await loadJobs();
+      if (!latestJobs.some((job) => job.status === "queued" || job.status === "running")) {
+        return;
+      }
+      await sleep(500);
     }
   }
 
@@ -106,4 +119,10 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
       </div>
     </section>
   );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }

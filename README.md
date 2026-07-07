@@ -10,7 +10,7 @@ Personal Wiki Agent 是一个本地优先、可持续学习、可主动协作的
 
 当前仓库已经完成 MVP 的主干能力：项目骨架、配置模型、SQLite 元数据模型、Alembic 迁移、本地目录 connector、增量同步判断、Markdown / txt / PDF / docx / HTML parser、chunk、SQLite FTS5、VectorStore 接口、ModelProvider 注册表、Hybrid Retriever、Search API、Chat API、基础 Agent Tools、Memory API 和对话式 Web UI。
 
-Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试、TypeScript 类型检查、生产构建和 Playwright UI 主流程验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。
+Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web UI 已落地到 `frontend/`，并通过前端单元测试、TypeScript 类型检查、生产构建、Playwright UI mock 主流程和真实后端浏览器 E2E 验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。
 
 ### 已完成能力
 
@@ -30,8 +30,8 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 
 ### 未完成或待后续增强
 
-- OpenAI-compatible provider 层已具备 Chat Completions 调用能力，应用启动时可读取模型配置并从环境变量解析 token 挂载 `ModelRouter`；真实外部服务 smoke test 仍需后续补齐。
-- Web UI 真实后端浏览器 E2E 仍需在普通本地环境或 GitHub Actions 中继续补充；本次执行环境拦截了长时间本地浏览器 E2E 命令，因此未把该项标为完成。
+- OpenAI-compatible provider 层已具备 Chat Completions 调用能力，应用启动时可读取模型配置并从环境变量解析 token 挂载 `ModelRouter`；NVIDIA OpenAI-compatible smoke test 已通过，Ollama 本地 smoke test 仍需等本机服务和模型就绪后执行。
+- Web UI 已补充真实后端浏览器 E2E；后续可扩展更大真实资料夹、真实外部模型慢速 E2E 和 Memory 管理 UI 覆盖。
 - 云端笔记 connector、自动写回云端笔记、OCR、复杂自动化工作流、企业级多用户和移动端不属于当前 MVP 已完成范围。
 
 ## 本地运行
@@ -265,8 +265,10 @@ Memory 验收已通过 `backend/tests/test_memory.py` 和 `backend/tests/test_ch
 ```powershell
 cd frontend
 npm install
+npx playwright install chromium
 npm run dev
 npm test
+npm run test:e2e
 npm run build
 ```
 
@@ -275,15 +277,14 @@ npm run build
 - `npm.cmd test` 通过，覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
 - `npm.cmd exec tsc -- --noEmit` 通过，前端 TypeScript 类型检查通过。
 - Python Playwright UI 主流程脚本通过，覆盖默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务；本次 API 使用浏览器路由 mock。
+- `npm.cmd run test:e2e` 通过，使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，覆盖创建 source、触发索引、Chat 提问、引用和来源抽屉。
 - `npm.cmd run build` 已在本地验证通过，生产构建可生成输出。
 
-真实后端浏览器 E2E 后续还需要确认：
+真实后端浏览器 E2E 后续可以继续扩展：
 
-- 默认进入对话式 Agent 主界面。
-- 能发送问题并展示回答。
-- 能展示 citations。
-- 点击 citation 可以打开来源详情抽屉。
-- 工具活动流可见且不干扰主对话。
+- 使用更大的真实资料夹做批量索引回归。
+- 增加可显式开启的真实外部模型浏览器 E2E。
+- 把 Memory 管理 UI 纳入浏览器 E2E。
 
 ## 打包与运行说明
 
