@@ -56,6 +56,8 @@ describe("MemoryView 长期记忆页", () => {
         confidence: 0.85,
         expires_at: "2026-12-31T09:30:00",
       }),
+      updateMemory: vi.fn(),
+      deleteMemory: vi.fn(),
       listSources: vi.fn(),
       createSource: vi.fn(),
       runIndex: vi.fn(),
