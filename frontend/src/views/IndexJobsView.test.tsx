@@ -13,6 +13,8 @@ describe("IndexJobsView 索引任务页", () => {
       getChunk: vi.fn(),
       listMemory: vi.fn(),
       createMemory: vi.fn(),
+      updateMemory: vi.fn(),
+      deleteMemory: vi.fn(),
       listSources: vi.fn(),
       createSource: vi.fn(),
       runIndex: vi.fn().mockResolvedValue({ jobs: [] }),
