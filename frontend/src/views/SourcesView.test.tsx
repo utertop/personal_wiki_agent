@@ -13,6 +13,8 @@ describe("SourcesView 数据源页", () => {
       getChunk: vi.fn(),
       listMemory: vi.fn(),
       createMemory: vi.fn(),
+      updateMemory: vi.fn(),
+      deleteMemory: vi.fn(),
       listSources: vi.fn().mockResolvedValueOnce({
         items: [
           {
