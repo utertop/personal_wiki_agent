@@ -98,4 +98,88 @@ describe("MemoryView 长期记忆页", () => {
       });
     });
   });
+
+  it("edits, archives, and deletes memories", async () => {
+    const firstMemory = {
+      memory_id: 1,
+      memory_type: "user_preference",
+      content: "Prefer concise answers.",
+      source: "manual",
+      confidence: 0.92,
+      status: "active",
+      expires_at: null,
+    };
+    const secondMemory = {
+      memory_id: 2,
+      memory_type: "project_context",
+      content: "Project is hardening Memory management.",
+      source: "review",
+      confidence: 0.8,
+      status: "active",
+      expires_at: null,
+    };
+    const editedMemory = {
+      ...firstMemory,
+      content: "Prefer source-backed concise answers.",
+      source: "review",
+      confidence: 0.7,
+    };
+    const client: PersonalWikiApiClient = {
+      chat: vi.fn(),
+      search: vi.fn(),
+      getDocument: vi.fn(),
+      getChunk: vi.fn(),
+      listMemory: vi
+        .fn()
+        .mockResolvedValueOnce({ items: [firstMemory, secondMemory] })
+        .mockResolvedValueOnce({ items: [editedMemory, secondMemory] })
+        .mockResolvedValueOnce({ items: [secondMemory] })
+        .mockResolvedValueOnce({ items: [] }),
+      createMemory: vi.fn(),
+      updateMemory: vi
+        .fn()
+        .mockResolvedValueOnce(editedMemory)
+        .mockResolvedValueOnce({ ...editedMemory, status: "archived" }),
+      deleteMemory: vi.fn().mockResolvedValue(undefined),
+      listSources: vi.fn(),
+      createSource: vi.fn(),
+      runIndex: vi.fn(),
+      listIndexJobs: vi.fn(),
+    };
+
+    render(<MemoryView client={client} />);
+
+    await screen.findByText("Prefer concise answers.");
+    fireEvent.click(screen.getByRole("button", { name: "Edit memory 1" }));
+    fireEvent.change(screen.getByDisplayValue("Prefer concise answers."), {
+      target: { value: "Prefer source-backed concise answers." },
+    });
+    fireEvent.change(screen.getByDisplayValue("manual"), { target: { value: "review" } });
+    fireEvent.change(screen.getByDisplayValue("0.92"), { target: { value: "0.7" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save memory changes" }));
+
+    await screen.findByText("Prefer source-backed concise answers.");
+    expect(client.updateMemory).toHaveBeenCalledWith(1, {
+      memory_type: "user_preference",
+      content: "Prefer source-backed concise answers.",
+      source: "review",
+      confidence: 0.7,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive memory 1" }));
+    await waitFor(() => {
+      expect(client.updateMemory).toHaveBeenCalledWith(1, { status: "archived" });
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Prefer source-backed concise answers.")).toBeNull();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete memory 2" }));
+    await waitFor(() => {
+      expect(client.deleteMemory).toHaveBeenCalledWith(2);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Project is hardening Memory management.")).toBeNull();
+    });
+  });
 });

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, List, Mapping, Optional
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -14,6 +14,12 @@ ALLOWED_MEMORY_TYPES = {
     "project_context",
     "workflow_habit",
     "stable_fact",
+}
+
+ALLOWED_MEMORY_STATUSES = {
+    "active",
+    "archived",
+    "deleted",
 }
 
 
@@ -85,6 +91,36 @@ class MemoryStore:
             .all()
         )
 
+    def update_memory(self, memory_id: int, updates: Mapping[str, Any]) -> Optional[Memory]:
+        """Update editable memory fields and return the refreshed row."""
+
+        memory = self.session.get(Memory, memory_id)
+        if memory is None:
+            return None
+
+        if "memory_type" in updates and updates["memory_type"] is not None:
+            memory.memory_type = validate_memory_type(str(updates["memory_type"]))
+        if "content" in updates and updates["content"] is not None:
+            memory.content = _clean_required_text(str(updates["content"]), "content")
+        if "source" in updates and updates["source"] is not None:
+            memory.source = _clean_required_text(str(updates["source"]), "source")
+        if "confidence" in updates and updates["confidence"] is not None:
+            memory.confidence = _validate_confidence(float(updates["confidence"]))
+        if "expires_at" in updates:
+            memory.expires_at = _normalize_datetime(updates["expires_at"])
+        if "status" in updates and updates["status"] is not None:
+            memory.status = validate_memory_status(str(updates["status"]))
+
+        memory.updated_at = utc_now()
+        self.session.commit()
+        self.session.refresh(memory)
+        return memory
+
+    def delete_memory(self, memory_id: int) -> Optional[Memory]:
+        """Soft-delete a memory so it disappears from active retrieval."""
+
+        return self.update_memory(memory_id, {"status": "deleted"})
+
 
 def remember_preference(
     content: str,
@@ -135,6 +171,16 @@ def validate_memory_type(memory_type: str) -> str:
     if normalized not in ALLOWED_MEMORY_TYPES:
         allowed = ", ".join(sorted(ALLOWED_MEMORY_TYPES))
         raise ValueError(f"memory_type 必须是以下之一：{allowed}")
+    return normalized
+
+
+def validate_memory_status(status: str) -> str:
+    """Validate and return a supported memory lifecycle status."""
+
+    normalized = (status or "").strip()
+    if normalized not in ALLOWED_MEMORY_STATUSES:
+        allowed = ", ".join(sorted(ALLOWED_MEMORY_STATUSES))
+        raise ValueError(f"status must be one of: {allowed}")
     return normalized
 
 

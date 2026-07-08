@@ -180,6 +180,97 @@ def test_memory_api_creates_and_lists_active_memories() -> None:
     assert [item["content"] for item in listed.json()["items"]] == ["用户偏好中文摘要。"]
 
 
+def test_memory_api_updates_memory_and_archives_it_from_active_list() -> None:
+    """Verify PATCH can edit memory fields and archive it out of the active list."""
+
+    client = make_client()
+    created = client.post(
+        "/memory",
+        json={
+            "memory_type": "user_preference",
+            "content": "Prefer concise answers.",
+            "source": "manual",
+            "confidence": 0.9,
+        },
+    ).json()
+
+    response = client.patch(
+        f"/memory/{created['memory_id']}",
+        json={
+            "memory_type": "project_context",
+            "content": "Personal Wiki Agent is in MVP hardening.",
+            "source": "review",
+            "confidence": 0.7,
+            "status": "archived",
+        },
+    )
+    listed = client.get("/memory")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["memory_id"] == created["memory_id"]
+    assert body["memory_type"] == "project_context"
+    assert body["content"] == "Personal Wiki Agent is in MVP hardening."
+    assert body["source"] == "review"
+    assert body["confidence"] == 0.7
+    assert body["status"] == "archived"
+    assert listed.json()["items"] == []
+
+
+def test_memory_api_returns_404_for_missing_memory_update() -> None:
+    """Verify PATCH reports missing memory IDs with 404."""
+
+    client = make_client()
+
+    response = client.patch("/memory/999", json={"status": "archived"})
+
+    assert response.status_code == 404
+
+
+def test_memory_api_rejects_invalid_status_update() -> None:
+    """Verify PATCH rejects statuses outside the public memory contract."""
+
+    client = make_client()
+    created = client.post(
+        "/memory",
+        json={
+            "memory_type": "user_preference",
+            "content": "Prefer source-backed answers.",
+            "source": "manual",
+        },
+    ).json()
+
+    response = client.patch(f"/memory/{created['memory_id']}", json={"status": "paused"})
+
+    assert response.status_code == 422
+
+
+def test_memory_api_soft_deletes_memory_and_hides_it_from_active_list() -> None:
+    """Verify DELETE marks memory as deleted instead of physically removing it."""
+
+    session_factory = make_session_factory()
+    client = make_client(session_factory=session_factory)
+    created = client.post(
+        "/memory",
+        json={
+            "memory_type": "user_preference",
+            "content": "Prefer detailed examples.",
+            "source": "manual",
+        },
+    ).json()
+
+    response = client.delete(f"/memory/{created['memory_id']}")
+    listed = client.get("/memory")
+    session = session_factory()
+    stored = session.get(Memory, created["memory_id"])
+    session.close()
+
+    assert response.status_code == 204
+    assert listed.json()["items"] == []
+    assert stored is not None
+    assert stored.status == "deleted"
+
+
 def test_memory_api_rejects_unknown_memory_type() -> None:
     """验证 Memory API 拒绝计划外的 memory_type。"""
 

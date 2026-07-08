@@ -15,6 +15,7 @@ export interface RetrievalSummary {
 }
 
 export type MemoryType = "user_preference" | "project_context" | "workflow_habit" | "stable_fact";
+export type MemoryStatus = "active" | "archived" | "deleted";
 
 export interface MemoryUsed {
   memory_id?: number;
@@ -22,6 +23,9 @@ export interface MemoryUsed {
   content: string;
   source?: string | null;
   confidence?: number | null;
+  status?: MemoryStatus | string;
+  created_at?: string;
+  updated_at?: string;
   expires_at?: string | null;
 }
 
@@ -121,6 +125,15 @@ export interface CreateMemoryRequest {
   expires_at?: string;
 }
 
+export interface UpdateMemoryRequest {
+  memory_type?: MemoryType;
+  content?: string;
+  source?: string;
+  confidence?: number;
+  expires_at?: string | null;
+  status?: MemoryStatus;
+}
+
 export type SourceType = "local_directory" | "local_synced_notes" | "obsidian_vault";
 
 export interface SourceRecord {
@@ -183,6 +196,8 @@ export interface PersonalWikiApiClient {
   getChunk(chunkId: number): Promise<ChunkDetail>;
   listMemory(params?: { query?: string; memory_type?: MemoryType | string; limit?: number }): Promise<MemoryResponse>;
   createMemory(request: CreateMemoryRequest): Promise<MemoryUsed>;
+  updateMemory(memoryId: number, request: UpdateMemoryRequest): Promise<MemoryUsed>;
+  deleteMemory(memoryId: number): Promise<void>;
   listSources(): Promise<SourceListResponse>;
   createSource(request: CreateSourceRequest): Promise<SourceRecord>;
   runIndex(request: IndexRunRequest): Promise<IndexRunResponse>;
@@ -230,6 +245,17 @@ export function createApiClient(baseUrl = ""): PersonalWikiApiClient {
       return requestJson<MemoryUsed>(apiBase, "/memory", {
         method: "POST",
         body: JSON.stringify(cleanPayload(request)),
+      });
+    },
+    async updateMemory(memoryId: number, request: UpdateMemoryRequest) {
+      return requestJson<MemoryUsed>(apiBase, `/memory/${memoryId}`, {
+        method: "PATCH",
+        body: JSON.stringify(cleanPayload(request)),
+      });
+    },
+    async deleteMemory(memoryId: number) {
+      await requestNoContent(apiBase, `/memory/${memoryId}`, {
+        method: "DELETE",
       });
     },
     async listSources() {
@@ -292,6 +318,21 @@ async function requestJson<T>(baseUrl: string, path: string, init: RequestInit =
 }
 
 /** 兼容 FastAPI detail 字符串或对象，生成面向 UI 的错误说明。 */
+async function requestNoContent(baseUrl: string, path: string, init: RequestInit = {}): Promise<void> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message);
+  }
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as { detail?: unknown; message?: unknown };

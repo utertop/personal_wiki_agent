@@ -76,7 +76,7 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 .\.venv\Scripts\python.exe -m pytest backend/tests -v
 ```
 
-截至本次复验，后端全量测试为 `90 passed, 2 skipped`，跳过项是真实外部模型和本地 Ollama smoke test，默认不会联网、访问本地模型服务或消耗 token。
+截至本次复验，后端全量测试为 `91 passed, 2 skipped`，跳过项是真实外部模型和本地 Ollama smoke test，默认不会联网、访问本地模型服务或消耗 token。
 
 如需只验证某个模块，可运行：
 
@@ -90,10 +90,11 @@ Invoke-RestMethod http://127.0.0.1:8000/health
 
 仓库已配置 GitHub Actions 工作流 [.github/workflows/ci.yml](.github/workflows/ci.yml)，在 push、pull request 和手动触发时运行。
 
-CI 当前包含三类检查：
+CI 当前包含四类检查：
 
 - Backend：Python 3.11，安装 `backend[dev]`，运行 `python -m pytest backend/tests -q`。
 - Frontend：Node 22，运行 `npm ci`、`npm test`、`npm exec tsc -- --noEmit` 和 `npm run build`。
+- E2E：安装 backend 与 frontend 依赖、安装 Playwright Chromium，运行 `npm run test:e2e`；失败时上传 Playwright trace 和 test-results artifact。
 - Docs：检查已跟踪文本文件中的乱码替换字符、合并冲突标记，以及 Markdown 本地相对链接。
 
 当前项目本地仍以手动运行和本地优先开发为主，CI 只做质量门禁；暂不做自动部署。
@@ -309,6 +310,7 @@ Pop-Location
 - [docs/project-design.md](docs/project-design.md)：系统设计、模块划分、API 和验收标准。
 - [docs/mvp-implementation-plan.md](docs/mvp-implementation-plan.md)：MVP 任务拆解和阶段记录。
 - [docs/mvp-acceptance-report.md](docs/mvp-acceptance-report.md)：当前 MVP 验收报告。
+- [docs/project-optimization-execution-plan.md](docs/project-optimization-execution-plan.md)：后续优化执行计划和 checklist。
 - [docs/conversational-agent-ui.md](docs/conversational-agent-ui.md)：对话式 Web UI 设计。
 - [docs/knowledge-memory-separation.md](docs/knowledge-memory-separation.md)：文档知识库与长期记忆边界。
 - [rules.md](rules.md)：开发与文档约束。

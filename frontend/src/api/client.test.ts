@@ -149,4 +149,50 @@ describe("Personal Wiki API 客户端", () => {
       expect.objectContaining({ headers: { "Content-Type": "application/json" } }),
     );
   });
+
+  it("calls Memory update and delete endpoints", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            memory_id: 7,
+            memory_type: "user_preference",
+            content: "Prefer concise answers.",
+            source: "manual",
+            confidence: 0.9,
+            status: "archived",
+            created_at: "2026-07-08T10:00:00",
+            updated_at: "2026-07-08T10:05:00",
+            expires_at: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("/api");
+    const updated = await client.updateMemory(7, { status: "archived" });
+    await client.deleteMemory(7);
+
+    expect(updated.status).toBe("archived");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/memory/7",
+      expect.objectContaining({
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "archived" }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/memory/7",
+      expect.objectContaining({
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
 });

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Plus, RefreshCw, Search } from "lucide-react";
-import type { CreateMemoryRequest, MemoryType, MemoryUsed, PersonalWikiApiClient } from "../api/client";
+import { Archive, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
+import type { CreateMemoryRequest, MemoryType, MemoryUsed, PersonalWikiApiClient, UpdateMemoryRequest } from "../api/client";
 
 export interface MemoryViewProps {
   client: PersonalWikiApiClient;
@@ -41,6 +41,7 @@ export function MemoryView({ client }: MemoryViewProps) {
   const [memories, setMemories] = useState<MemoryUsed[]>([]);
   const [filters, setFilters] = useState<MemoryFilterState>(defaultFilters);
   const [form, setForm] = useState<MemoryFormState>(defaultForm);
+  const [editingMemoryId, setEditingMemoryId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export function MemoryView({ client }: MemoryViewProps) {
     await loadMemories(filters);
   }
 
-  async function handleCreateMemory(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveMemory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.content.trim() || !form.source.trim() || isSaving) {
       return;
@@ -80,12 +81,69 @@ export function MemoryView({ client }: MemoryViewProps) {
     setIsSaving(true);
     setError(null);
     try {
-      await client.createMemory(buildCreateRequest(form));
+      if (editingMemoryId === null) {
+        await client.createMemory(buildCreateRequest(form));
+        setFilters(defaultFilters);
+        await loadMemories(defaultFilters);
+      } else {
+        await client.updateMemory(editingMemoryId, buildUpdateRequest(form));
+        await loadMemories(filters);
+      }
       setForm(defaultForm);
-      setFilters(defaultFilters);
-      await loadMemories(defaultFilters);
+      setEditingMemoryId(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "记忆创建失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleEditMemory(memory: MemoryUsed) {
+    if (memory.memory_id === undefined) {
+      return;
+    }
+    setEditingMemoryId(memory.memory_id);
+    setForm({
+      memoryType: normalizeMemoryType(memory.memory_type),
+      content: memory.content,
+      source: memory.source ?? "manual",
+      confidence: typeof memory.confidence === "number" ? String(memory.confidence) : "",
+      expiresAt: toDateTimeInputValue(memory.expires_at),
+    });
+  }
+
+  function handleCancelEdit() {
+    setEditingMemoryId(null);
+    setForm(defaultForm);
+  }
+
+  async function handleArchiveMemory(memoryId: number) {
+    if (isSaving) {
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      await client.updateMemory(memoryId, { status: "archived" });
+      await loadMemories(filters);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Memory archive failed");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteMemory(memoryId: number) {
+    if (isSaving) {
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      await client.deleteMemory(memoryId);
+      await loadMemories(filters);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Memory delete failed");
     } finally {
       setIsSaving(false);
     }
@@ -143,7 +201,7 @@ export function MemoryView({ client }: MemoryViewProps) {
         </button>
       </form>
 
-      <form className="inline-form memory-create-form" onSubmit={handleCreateMemory}>
+      <form className="inline-form memory-create-form" onSubmit={handleSaveMemory}>
         <label>
           记忆类型
           <select
@@ -191,12 +249,23 @@ export function MemoryView({ client }: MemoryViewProps) {
             onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))}
           />
         </label>
-        <button className="secondary-button" type="submit" disabled={isSaving}>
-          <Plus size={16} aria-hidden="true" />
+        <button
+          aria-label={editingMemoryId === null ? undefined : "Save memory changes"}
+          className="secondary-button"
+          type="submit"
+          disabled={isSaving}
+        >
+          {editingMemoryId === null ? <Plus size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
           <span>添加记忆</span>
         </button>
       </form>
 
+        {editingMemoryId !== null ? (
+          <button className="secondary-button" type="button" onClick={handleCancelEdit} disabled={isSaving}>
+            <X size={16} aria-hidden="true" />
+            <span>Cancel</span>
+          </button>
+        ) : null}
       {error ? <div className="activity-error">{error}</div> : null}
       <div className="table-wrap">
         <table>
@@ -208,17 +277,18 @@ export function MemoryView({ client }: MemoryViewProps) {
               <th>来源</th>
               <th>置信度</th>
               <th>过期时间</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {memories.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan={6}>暂无长期记忆</td>
+                <td colSpan={7}>暂无长期记忆</td>
               </tr>
             ) : null}
             {isLoading ? (
               <tr>
-                <td colSpan={6}>加载中</td>
+                <td colSpan={7}>加载中</td>
               </tr>
             ) : null}
             {memories.map((memory) => (
@@ -231,6 +301,39 @@ export function MemoryView({ client }: MemoryViewProps) {
                 <td>{memory.source ?? ""}</td>
                 <td>{formatConfidence(memory.confidence)}</td>
                 <td>{formatExpiresAt(memory.expires_at)}</td>
+                <td className="table-actions">
+                  {memory.memory_id !== undefined ? (
+                    <>
+                      <button
+                        aria-label={`Edit memory ${memory.memory_id}`}
+                        className="icon-button"
+                        type="button"
+                        onClick={() => handleEditMemory(memory)}
+                        disabled={isSaving}
+                      >
+                        <Pencil size={15} aria-hidden="true" />
+                      </button>
+                      <button
+                        aria-label={`Archive memory ${memory.memory_id}`}
+                        className="icon-button"
+                        type="button"
+                        onClick={() => void handleArchiveMemory(memory.memory_id!)}
+                        disabled={isSaving}
+                      >
+                        <Archive size={15} aria-hidden="true" />
+                      </button>
+                      <button
+                        aria-label={`Delete memory ${memory.memory_id}`}
+                        className="icon-button danger-button"
+                        type="button"
+                        onClick={() => void handleDeleteMemory(memory.memory_id!)}
+                        disabled={isSaving}
+                      >
+                        <Trash2 size={15} aria-hidden="true" />
+                      </button>
+                    </>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -254,6 +357,30 @@ function buildCreateRequest(form: MemoryFormState): CreateMemoryRequest {
     request.expires_at = form.expiresAt;
   }
   return request;
+}
+
+function buildUpdateRequest(form: MemoryFormState): UpdateMemoryRequest {
+  const request: UpdateMemoryRequest = {
+    memory_type: form.memoryType,
+    content: form.content.trim(),
+    source: form.source.trim(),
+  };
+  const confidence = Number(form.confidence);
+  if (form.confidence !== "" && Number.isFinite(confidence)) {
+    request.confidence = confidence;
+  }
+  if (form.expiresAt) {
+    request.expires_at = form.expiresAt;
+  }
+  return request;
+}
+
+function normalizeMemoryType(value: MemoryUsed["memory_type"]): MemoryType {
+  return memoryTypes.includes(value as MemoryType) ? (value as MemoryType) : "user_preference";
+}
+
+function toDateTimeInputValue(value: string | null | undefined): string {
+  return value ? value.slice(0, 16) : "";
 }
 
 function toPositiveLimit(value: string): number {

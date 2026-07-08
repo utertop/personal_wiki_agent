@@ -9,14 +9,14 @@
 - Task 1 到 Task 17 的后端主干能力已有实现和测试覆盖。
 - Task 17 Memory API 已按最终契约完成：`POST /memory` 创建记忆，`GET /memory` 查询 active 且未过期记忆，`POST /chat` 响应包含 `memories_used`。
 - Task 18 Web UI 已落地到 `frontend/`：提供 React + Vite + TypeScript 对话式 Agent 工作台和 Memory 管理入口，并通过前端测试、TypeScript 类型检查、生产构建和 Playwright UI / 真实后端 E2E 验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。
-- Task 21 CI 已落地到 `.github/workflows/ci.yml`：push、pull request 和手动触发时运行后端、前端和文档基础检查。
+- Task 21 CI 已落地到 `.github/workflows/ci.yml`：push、pull request 和手动触发时运行后端、前端、真实后端浏览器 E2E 和文档基础检查。
 - 本报告不把目标 API、设计文档中的长期能力或并行任务预期写成已完成能力。
 
 ## 已执行验证
 
 | 验证命令 | 当前结果 | 说明 |
 | --- | --- | --- |
-| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`90 passed, 2 skipped` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归、UTC 时间工具契约、OpenAI-compatible / Ollama provider 调用契约和启动时模型路由挂载；跳过项是真实外部模型与本地 Ollama smoke test，需显式环境变量开启。 |
+| `.\.venv\Scripts\python.exe -m pytest backend/tests -q` | 通过；`91 passed, 2 skipped` | 用于验证 Task 1 到 Task 20 的后端能力，以及本地 Web UI CORS、Chat 英文自然问句检索回归、UTC 时间工具契约、OpenAI-compatible / Ollama provider 调用契约、共享 prompt builder 和启动时模型路由挂载；跳过项是真实外部模型与本地 Ollama smoke test，需显式环境变量开启。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_memory.py -q` | 通过；`6 passed` | 用于验证 Task 17 Memory API、过滤规则、过期规则和 Chat `memories_used`。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`6 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误、缺 API token 提示和英文自然问句弱词过滤。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
@@ -46,16 +46,16 @@
 | Task 9 索引流水线 | 可扫描 source、解析文件、写入 document/chunk/job，并可接入 FTS。 | `backend/tests/test_indexing_pipeline.py`。 | 通过。 | 流水线仍可被内部同步调用；HTTP 层已通过后台任务避免请求长时间阻塞。 |
 | Task 10 LexicalIndex / FTS5 | SQLite FTS5 可索引、检索、替换、删除 chunk。 | `backend/tests/test_sqlite_fts.py`。 | 通过。 | 中文检索质量仍需真实语料评估，后续可接 Tantivy / Meilisearch adapter。 |
 | Task 11 VectorStore 接口 | Hashing embedder 与内存型向量库满足接口契约。 | `backend/tests/test_vector_store_contract.py`。 | 通过。 | 当前不代表真实语义 embedding 质量，真实向量库接入需后续验证。 |
-| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用；OpenAI-compatible Chat Completions client 和 Ollama `/api/chat` client 已具备真实 HTTP 调用实现；应用启动时可读取模型配置并挂载 ModelRouter；NVIDIA OpenAI-compatible smoke test 已通过。 | `backend/tests/test_model_registry.py`；`backend/tests/test_app_model_router.py`；`backend/tests/test_real_model_smoke.py`；`backend/tests/test_ollama_smoke.py`。 | 通过。 | Ollama 本地 smoke test 已提供显式开关，需本机 Ollama 服务和模型就绪后手动运行；真实模型 smoke test 默认跳过，避免普通测试误联网或消耗 token。 |
+| Task 12 ModelProvider | OpenAI-compatible / Ollama provider 配置、catalog 和 router 契约可用；OpenAI-compatible Chat Completions client 和 Ollama `/api/chat` client 已具备真实 HTTP 调用实现；两个 provider 已共用 prompt builder；应用启动时可读取模型配置并挂载 ModelRouter；NVIDIA OpenAI-compatible smoke test 已通过。 | `backend/tests/test_model_registry.py`；`backend/tests/test_app_model_router.py`；`backend/tests/test_prompt_builder.py`；`backend/tests/test_real_model_smoke.py`；`backend/tests/test_ollama_smoke.py`。 | 通过。 | Ollama 本地 smoke test 已提供显式开关，需本机 Ollama 服务和模型就绪后手动运行；真实模型 smoke test 默认跳过，避免普通测试误联网或消耗 token。 |
 | Task 13 Hybrid Retriever | 可合并关键词和向量命中，支持过滤和空查询。 | `backend/tests/test_hybrid_retriever.py`。 | 通过。 | 当前主路径依赖 FTS；真实向量召回质量待后续接入验证。 |
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
 | Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回；provider 缺少 API token 时返回可操作错误提示。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实外部模型服务 smoke test 仍需后续验证。 |
 | Task 16 Agent Tools | `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 可作为后端工具函数使用。 | `backend/tests/test_agent_tools.py`。 | 通过。 | 当前是函数级工具，不是独立 HTTP API；后续如果需要从 Web UI 直接调用，需补稳定 HTTP 或 Agent 编排入口。 |
-| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试；`MemoryView.test.tsx`；`npm.cmd run test:e2e`。 | 通过；`test_memory.py` 6 passed，全量后端测试 90 passed、2 skipped，Web UI 已支持查看、筛选和手动新增。 | 归档和删除需后续先补后端 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}`，再接入 UI。 |
+| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试；`MemoryView.test.tsx`；`npm.cmd run test:e2e`。 | 通过；`test_memory.py` 6 passed，全量后端测试 91 passed、2 skipped，Web UI 已支持查看、筛选和手动新增。 | 归档和删除需后续先补后端 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}`，再接入 UI。 |
 | Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口、索引任务入口和 Memory 管理入口；后端允许本地 Vite Web UI 跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；`npm.cmd run test:e2e`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；7 个测试文件、10 个测试通过，TypeScript 类型检查通过，真实后端浏览器 E2E 通过，Playwright UI mock 主流程通过，CORS 回归通过，生产构建通过。 | 真实后端浏览器 E2E 当前使用内存 SQLite 和 fake model router；如需覆盖真实外部模型，可后续增加显式开启的慢速 E2E。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
 | Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过；`POST /index/run` 已返回 `202 Accepted` 和 `queued` job，并由后台任务执行实际索引。 | 当前后台执行使用 FastAPI BackgroundTasks，适合本地 MVP；后续如需更强可靠性可演进为持久化任务队列和独立 worker。 |
-| Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
+| Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端、真实后端浏览器 E2E 和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置；E2E job 会安装 Playwright Chromium，运行 `npm run test:e2e`，失败时上传 Playwright artifact。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
 
 ## 已完成能力
 
@@ -66,7 +66,7 @@
 - 关键词检索、来源引用、回答上下文和 Agent Tools 已形成后端闭环。
 - 文档知识库与长期记忆在模型层保持分离。
 - Web UI 已形成对话式工作台，数据源页和索引任务页已接入真实 API，并通过前端测试、TypeScript 类型检查和 Playwright UI 主流程验收。
-- GitHub Actions CI 已配置后端、前端和文档基础检查。
+- GitHub Actions CI 已配置后端、前端、真实后端浏览器 E2E 和文档基础检查。
 - 项目文档已补充当前状态、待集成边界、运行命令和验收报告。
 
 ## 未完成能力
