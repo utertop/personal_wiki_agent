@@ -33,6 +33,8 @@ describe("ChatView 对话工作台", () => {
       getChunk: vi.fn(),
       listMemory: vi.fn(),
       createMemory: vi.fn(),
+      updateMemory: vi.fn(),
+      deleteMemory: vi.fn(),
       listSources: vi.fn(),
       createSource: vi.fn(),
       runIndex: vi.fn(),
