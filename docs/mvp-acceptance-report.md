@@ -8,7 +8,7 @@
 
 - Task 1 到 Task 17 的后端主干能力已有实现和测试覆盖。
 - Task 17 Memory API 已按最终契约完成：`POST /memory` 创建记忆，`GET /memory` 查询 active 且未过期记忆，`POST /chat` 响应包含 `memories_used`。
-- Task 18 Web UI 已落地到 `frontend/`：提供 React + Vite + TypeScript 对话式 Agent 工作台，并通过前端测试、TypeScript 类型检查、生产构建和 Playwright UI 主流程验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。
+- Task 18 Web UI 已落地到 `frontend/`：提供 React + Vite + TypeScript 对话式 Agent 工作台和 Memory 管理入口，并通过前端测试、TypeScript 类型检查、生产构建和 Playwright UI / 真实后端 E2E 验收；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置。
 - Task 21 CI 已落地到 `.github/workflows/ci.yml`：push、pull request 和手动触发时运行后端、前端和文档基础检查。
 - 本报告不把目标 API、设计文档中的长期能力或并行任务预期写成已完成能力。
 
@@ -21,10 +21,10 @@
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_chat_api.py -q` | 通过；`6 passed` | 用于回归验证 Chat API 引用、无来源保护、模型配置错误、缺 API token 提示和英文自然问句弱词过滤。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_cors.py -q` | 通过；`1 passed` | 用于验证本地 Vite Web UI 可以跨端口访问 FastAPI API。 |
 | `.\.venv\Scripts\python.exe -m pytest backend/tests/test_source_index_api.py -q` | 通过；`5 passed` | 用于验证 Source / Index API、后台索引排队和索引后搜索闭环。 |
-| `npm.cmd test` | 通过；5 个测试文件、8 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图和索引任务视图。 |
+| `npm.cmd test` | 通过；7 个测试文件、10 个测试通过 | 用于验证前端 API client、工具活动流、对话视图、数据源视图、索引任务视图、Memory 管理视图和应用导航。 |
 | `npm.cmd exec tsc -- --noEmit` | 通过 | 用于验证 Task 18 前端 TypeScript 类型检查。 |
 | Python Playwright UI 主流程脚本 | 通过；`OK: Playwright UI main flow passed` | 使用 Vite dev server、Chrome 和浏览器路由 mock API，验证默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。 |
-| `npm.cmd run test:e2e` | 通过；`1 passed` | 使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，验证创建 source、触发索引、Chat 提问、引用和来源抽屉。 |
+| `npm.cmd run test:e2e` | 通过；`1 passed` | 使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，验证 Memory 新增/筛选、创建 source、触发索引、Chat 提问、引用和来源抽屉。 |
 | `npm.cmd run build` | 通过 | 用于验证前端生产构建输出可生成。 |
 | `PERSONAL_WIKI_ENABLE_REAL_MODEL_SMOKE=1 .\.venv\Scripts\python.exe -m pytest backend/tests/test_real_model_smoke.py -q` | 通过；`1 passed` | 使用 NVIDIA OpenAI-compatible provider 和真实模型 `meta/llama-3.1-70b-instruct` 验证 `/chat` 从检索、模型调用到带引用回答的最小闭环。 |
 | `.\.venv\Scripts\python.exe -c "import yaml; ..."` | 通过 | 用于验证 GitHub Actions workflow YAML 可解析。 |
@@ -51,8 +51,8 @@
 | Task 14 Search API 与来源详情 | `POST /search`、`GET /documents/{document_id}`、`GET /chunks/{chunk_id}` 返回可追溯结果。 | `backend/tests/test_search_api.py`。 | 通过。 | Source / Index 管理 API 已在 Task 20 补齐。 |
 | Task 15 Chat API | `POST /chat` 返回 `answer`、`citations`、`memories_used`、`confidence`、`retrieval_summary`；无可靠来源时不伪造引用；英文自然问句会过滤弱问句词以减少漏召回；provider 缺少 API token 时返回可操作错误提示。 | `backend/tests/test_chat_api.py`、`backend/tests/test_memory.py`。 | 通过。 | 真实外部模型服务 smoke test 仍需后续验证。 |
 | Task 16 Agent Tools | `search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 可作为后端工具函数使用。 | `backend/tests/test_agent_tools.py`。 | 通过。 | 当前是函数级工具，不是独立 HTTP API；后续如果需要从 Web UI 直接调用，需补稳定 HTTP 或 Agent 编排入口。 |
-| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试。 | 通过；`test_memory.py` 6 passed，全量后端测试 90 passed、2 skipped。 | 后续需在 Web UI 中提供记忆管理入口，并继续保持文档引用与记忆上下文分离。 |
-| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口；后端允许本地 Vite Web UI 跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；`npm.cmd run test:e2e`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；5 个测试文件、8 个测试通过，TypeScript 类型检查通过，真实后端浏览器 E2E 通过，Playwright UI mock 主流程通过，CORS 回归通过，生产构建通过。 | 真实后端浏览器 E2E 当前使用内存 SQLite 和 fake model router；如需覆盖真实外部模型，可后续增加显式开启的慢速 E2E。 |
+| Task 17 Memory API | `POST /memory` 创建记忆；`GET /memory` 按 query、memory_type、limit 查询 active 且未过期记忆；Chat 响应区分 `citations` 和 `memories_used`。 | `backend/tests/test_memory.py`；后端全量测试；`MemoryView.test.tsx`；`npm.cmd run test:e2e`。 | 通过；`test_memory.py` 6 passed，全量后端测试 90 passed、2 skipped，Web UI 已支持查看、筛选和手动新增。 | 归档和删除需后续先补后端 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}`，再接入 UI。 |
+| Task 18 Web UI | `frontend/` React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口、索引任务入口和 Memory 管理入口；后端允许本地 Vite Web UI 跨端口访问 API。 | `npm.cmd test`；`npm.cmd exec tsc -- --noEmit`；`npm.cmd run test:e2e`；Python Playwright UI 主流程脚本；`backend/tests/test_cors.py`；`npm.cmd run build`。 | 主流程通过；7 个测试文件、10 个测试通过，TypeScript 类型检查通过，真实后端浏览器 E2E 通过，Playwright UI mock 主流程通过，CORS 回归通过，生产构建通过。 | 真实后端浏览器 E2E 当前使用内存 SQLite 和 fake model router；如需覆盖真实外部模型，可后续增加显式开启的慢速 E2E。 |
 | Task 19 文档与打包 | README、路线文档、设计文档、实施计划和验收报告口径一致。 | 文档体检、替换字符检查、本地 Markdown 链接解析、后端和前端验证命令。 | 通过。 | 后续路线、需求或 API 状态变化时继续执行文档一致性体检。 |
 | Task 20 Source / Index API 与 Web UI 接入 | `GET /sources`、`POST /sources`、`POST /index/run`、`GET /index/jobs` 可用，Web UI 数据源页和索引页接入真实 API。 | `backend/tests/test_source_index_api.py`；`frontend/src/api/client.test.ts`；`SourcesView.test.tsx`；`IndexJobsView.test.tsx`。 | 通过；`POST /index/run` 已返回 `202 Accepted` 和 `queued` job，并由后台任务执行实际索引。 | 当前后台执行使用 FastAPI BackgroundTasks，适合本地 MVP；后续如需更强可靠性可演进为持久化任务队列和独立 worker。 |
 | Task 21 GitHub Actions CI | push、pull request 和手动触发时自动检查后端、前端和文档基础质量。 | `.github/workflows/ci.yml`；YAML 解析检查；本地同等命令验证。 | 已配置。 | GitHub 远端首次运行结果需要 push 后在 Actions 页面确认；CI 暂不做自动部署。 |
@@ -60,7 +60,7 @@
 ## 已完成能力
 
 - 后端可启动并暴露健康检查、搜索、问答和来源详情 API。
-- Memory API 可创建和查询长期记忆，Chat API 可返回 `memories_used`。
+- Memory API 和 Web UI 可创建、查询和筛选长期记忆，Chat API 可返回 `memories_used`。
 - 本地目录索引主干可通过 `IndexingPipeline` 验证。
 - Source / Index API 可创建数据源、触发后台索引并查看任务状态。
 - 关键词检索、来源引用、回答上下文和 Agent Tools 已形成后端闭环。
@@ -119,7 +119,7 @@ npm run build
 
 ## 后续动作
 
-1. 补充 Memory 管理 UI，提供长期记忆查看、搜索、手动新增和归档入口。
+1. 如需 Memory 归档/删除能力，先补 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}` 后端契约，再接入 UI。
 2. 本机 Ollama 服务和模型就绪后，执行 `backend/tests/test_ollama_smoke.py` 验证本地模型闭环。
 3. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 4. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。

@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { BookOpenText, Database, MessageSquareText, Settings2, TimerReset } from "lucide-react";
+import { BookOpenText, Brain, Database, MessageSquareText, Settings2, TimerReset } from "lucide-react";
 import { createApiClient, type Citation } from "./api/client";
 import { SourceDrawer } from "./components/SourceDrawer";
 import { ChatView } from "./views/ChatView";
 import { IndexJobsView } from "./views/IndexJobsView";
+import { MemoryView } from "./views/MemoryView";
 import { SourcesView } from "./views/SourcesView";
 
-type ActiveView = "chat" | "sources" | "indexJobs";
+type ActiveView = "chat" | "sources" | "indexJobs" | "memory";
 
 /** 控制整个前端工作台的导航、API 客户端和来源抽屉状态。 */
 export default function App() {
@@ -50,6 +51,14 @@ export default function App() {
             <TimerReset size={18} aria-hidden="true" />
             <span>索引</span>
           </button>
+          <button
+            className={activeView === "memory" ? "active" : ""}
+            type="button"
+            onClick={() => setActiveView("memory")}
+          >
+            <Brain size={18} aria-hidden="true" />
+            <span>Memory</span>
+          </button>
         </nav>
         <details className="side-settings">
           <summary>
@@ -72,6 +81,7 @@ export default function App() {
         {activeView === "chat" ? <ChatView client={client} onOpenSource={setSelectedCitation} /> : null}
         {activeView === "sources" ? <SourcesView client={client} /> : null}
         {activeView === "indexJobs" ? <IndexJobsView client={client} /> : null}
+        {activeView === "memory" ? <MemoryView client={client} /> : null}
       </main>
       <SourceDrawer
         citation={selectedCitation}

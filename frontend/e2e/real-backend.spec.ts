@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-test("creates a source, indexes it, chats with citations, and opens the source drawer", async ({ page }) => {
+test("manages memory, creates a source, indexes it, chats with citations, and opens the source drawer", async ({
+  page,
+}) => {
   const knowledgeDir = path.resolve("../.codex_tmp/e2e_knowledge");
   rmSync(knowledgeDir, { recursive: true, force: true });
   mkdirSync(knowledgeDir, { recursive: true });
@@ -14,6 +16,22 @@ test("creates a source, indexes it, chats with citations, and opens the source d
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Personal Wiki Agent" })).toBeVisible();
+
+  await page.getByRole("button", { name: /Memory/ }).click();
+  await expect(page.getByRole("heading", { name: "长期记忆" })).toBeVisible();
+  const memoryCreateForm = page.locator(".memory-create-form");
+  await memoryCreateForm.getByLabel("记忆类型").selectOption("user_preference");
+  await memoryCreateForm.getByLabel("内容").fill("用户希望回答优先使用中文。");
+  await memoryCreateForm.getByLabel("来源").fill("e2e");
+  await memoryCreateForm.getByLabel("置信度").fill("0.91");
+  await page.getByRole("button", { name: "添加记忆" }).click();
+  await expect(page.getByText("用户希望回答优先使用中文。")).toBeVisible();
+
+  const memoryFilterForm = page.locator(".memory-filter-form");
+  await memoryFilterForm.getByLabel("关键词").fill("中文");
+  await memoryFilterForm.getByLabel("筛选类型").selectOption("user_preference");
+  await page.getByRole("button", { name: "查询" }).click();
+  await expect(page.getByText("用户希望回答优先使用中文。")).toBeVisible();
 
   await page.getByRole("button", { name: /数据源/ }).click();
   await page.getByLabel("名称").fill("E2E 知识目录");

@@ -204,7 +204,7 @@ MVP 不做：
 
 ### 4.1 当前实现状态（Task 18 / Task 19 体检）
 
-截至本次复验，当前仓库已经落地 MVP 后端主干能力、Memory API 和对话式 Web UI。后端测试、前端单元测试、前端 TypeScript 类型检查和 Playwright UI 主流程验收均已有通过结果；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，并补充 Chat 英文自然问句弱词过滤回归。生产构建命令在当前沙箱中受 Node 写文件权限限制，真实后端浏览器 E2E 本次也被当前执行环境拦截，二者都需要在普通本地环境或 GitHub Actions 中复验。
+截至本次复验，当前仓库已经落地 MVP 后端主干能力、Memory API、Memory 管理 UI 和对话式 Web UI。后端测试、前端单元测试、前端 TypeScript 类型检查、生产构建、Playwright UI mock 主流程和真实后端浏览器 E2E 均已有通过结果；后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，并补充 Chat 英文自然问句弱词过滤回归。
 
 已实现并有测试覆盖的能力包括：
 
@@ -424,14 +424,14 @@ Notion 的 API 相对清晰，可以作为后续云端 connector 的参考样板
 
 ## 9. 下一步
 
-当前下一步不是重新创建项目骨架，也不是继续扩大前端页面，而是用真实后端和真实本地目录做端到端联调，并把真实模型 provider 接入排上日程。真实后端浏览器 E2E 本次受执行环境限制未完成，仍保留为下一步优先验收项。`POST /index/run` 已演进为 `202 Accepted + queued job + FastAPI BackgroundTasks`，后续如需更强可靠性再升级为持久化任务队列和独立 worker。
+当前下一步不是重新创建项目骨架，也不是继续扩大基础页面，而是用更大的真实本地目录做端到端回归，并把本机 Ollama smoke test、真实 embedding 和持久化向量库排上日程。`POST /index/run` 已演进为 `202 Accepted + queued job + FastAPI BackgroundTasks`，后续如需更强可靠性再升级为持久化任务队列和独立 worker。
 
 建议优先处理：
 
-1. 用真实后端和真实本地目录执行一次端到端验证：创建 source、触发后台索引、搜索、问答、打开来源、使用记忆。
-2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果，并补齐生产构建输出验证。
-3. 按 [mvp-acceptance-report.md](mvp-acceptance-report.md) 更新真实后端浏览器 E2E 和生产构建复验记录。
-4. 推进真实模型 provider HTTP client，让 Chat API 从 fake client 验证进入真实模型调用验证。
+1. 用更大的真实本地目录执行一次端到端回归：创建 source、触发后台索引、搜索、问答、打开来源、使用记忆。
+2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果。
+3. 本机 Ollama 服务和模型就绪后，执行本地模型 smoke test。
+4. 推进真实 embedding、持久化向量库和可选真实外部模型浏览器 E2E。
 
 ## 10. 相关文档
 

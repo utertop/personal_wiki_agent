@@ -802,7 +802,7 @@ MVP UI 不做花哨界面，也不做复杂后台系统。默认主入口应是�
 
 详细设计见 [conversational-agent-ui.md](conversational-agent-ui.md)。
 
-Task 18 已提供 React + Vite + TypeScript 对话式 Agent 工作台，位于 `frontend/`。当前前端已通过单元测试、TypeScript 类型检查和 Playwright UI 主流程验收，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口。数据源页已接入 `GET /sources` 与 `POST /sources`，索引页已接入 `GET /index/jobs` 与 `POST /index/run`。后端已允许本地 Vite 开发源跨端口访问 FastAPI API，并补充 Chat 英文自然问句弱词过滤回归。生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验；真实后端浏览器 E2E 本次被当前执行环境拦截，仍需后续补充。
+Task 18 已提供 React + Vite + TypeScript 对话式 Agent 工作台，位于 `frontend/`。当前前端已通过单元测试、TypeScript 类型检查、生产构建、Playwright UI mock 主流程和真实后端浏览器 E2E 验收，包含对话页、引用抽屉、工具活动流、数据源管理入口、索引任务入口和 Memory 管理入口。数据源页已接入 `GET /sources` 与 `POST /sources`，索引页已接入 `GET /index/jobs` 与 `POST /index/run`，Memory 页已接入 `GET /memory` 与 `POST /memory`。后端已允许本地 Vite 开发源跨端口访问 FastAPI API，并补充 Chat 英文自然问句弱词过滤回归。
 
 ### 8.12 Export / Mirror 模块
 
@@ -1090,7 +1090,7 @@ MVP 完成时应满足：
 11. 所有配置和索引默认存储在本地。
 12. 项目文档为中文，Markdown 使用 UTF-8 编码。
 
-当前逐项验收结果、验证方式、风险和后续动作见 [mvp-acceptance-report.md](mvp-acceptance-report.md)。Task 18 Web UI 已完成代码集成，并通过前端测试、类型检查和 Playwright UI 主流程验收；本地 Vite 到 FastAPI 的 CORS 回归已通过；生产构建输出写入与真实后端浏览器 E2E 仍作为后续验收项继续追踪。
+当前逐项验收结果、验证方式、风险和后续动作见 [mvp-acceptance-report.md](mvp-acceptance-report.md)。Task 18 Web UI 已完成代码集成，并通过前端测试、类型检查、生产构建、Playwright UI mock 主流程和真实后端浏览器 E2E 验收；本地 Vite 到 FastAPI 的 CORS 回归已通过。
 
 ## 14. 可进化性设计
 

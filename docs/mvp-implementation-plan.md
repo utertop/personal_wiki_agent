@@ -830,12 +830,12 @@ MVP 完成后，用户应该能做到：
 **当前记录：**
 
 - `frontend/` 已提供对话式 Agent 工作台。
-- 前端测试已覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
+- 前端测试已覆盖 API client、工具活动流、对话视图、数据源视图、索引任务视图、Memory 管理视图和应用导航。
 - 前端 TypeScript 类型检查已通过。
 - Playwright UI 主流程验收已通过，覆盖默认 Chat 页面、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务。
-- 本次 Playwright 验收使用浏览器路由 mock API 响应，用于验证前端主流程；真实后端浏览器 E2E 仍需在普通本地环境或后续 CI 环境补充。
-- 后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，并通过 `backend/tests/test_cors.py` 回归验证；真实后端浏览器 E2E 本次被当前执行环境拦截，仍未标为完成。
-- 前端生产构建命令在当前沙箱中受 Node 写文件权限限制，需要在普通本地环境或 GitHub Actions 中复验。
+- Playwright UI mock 主流程验收已通过；真实后端浏览器 E2E 已通过，覆盖 Memory 新增/筛选、创建 source、触发索引、Chat 提问、引用和来源抽屉。
+- 后端已补充本地 Vite Web UI 跨端口访问 FastAPI 的 CORS 配置，并通过 `backend/tests/test_cors.py` 回归验证。
+- 前端生产构建命令已通过。
 
 **验收标准：**
 
@@ -860,14 +860,14 @@ MVP 完成后，用户应该能做到：
 - [x] 记录已完成能力和未完成能力。
 - [x] 执行文档一致性体检。
 - [x] 形成 MVP 验收报告。
-- [!] 确认测试、格式检查、基础手动验证结果；自动化测试、类型检查、文档检查和 Playwright UI 主流程验收已完成，前端生产构建输出与真实后端浏览器 E2E 仍需在普通本地环境或 GitHub Actions 中补充确认。
+- [x] 确认测试、格式检查、基础手动验证结果；自动化测试、类型检查、文档检查、生产构建、Playwright UI mock 主流程和真实后端浏览器 E2E 已完成。
 
 **当前记录：**
 
 - README 已覆盖本地运行、配置、索引、搜索、问答、Agent Tools、Memory、Web UI、CI 和打包说明。
 - [mvp-acceptance-report.md](mvp-acceptance-report.md) 已记录已完成能力、未完成能力、验证命令和 Task 18 到 Task 21 的当前状态。
 - 文档与文本卫生检查已通过：未发现乱码替换字符、合并冲突标记或失效的 Markdown 本地相对链接。
-- Task 19 的文档与验收整理已基本完成；剩余风险来自真实后端浏览器 E2E 和前端生产构建输出复验，不是文档本身缺失。
+- Task 19 的文档与验收整理已完成；剩余风险来自后续新增能力的文档同步，而不是当前文档缺失。
 
 **验收标准：**
 
@@ -1044,11 +1044,11 @@ MVP 完成后，用户应该能做到：
 
 ## 9. 当前阶段建议推进顺序
 
-截至本次复验，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI 主流程验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI；Task 22 已把 `POST /index/run` 演进为后台任务触发。生产构建输出写入和真实后端浏览器 E2E 需要在普通本地环境或 GitHub Actions 中复验。
+截至本次复验，Task 1 到 Task 17 的后端主干能力已经有实现和测试覆盖；Task 18 Web UI 已完成代码集成，并通过 Playwright UI mock 主流程、真实后端浏览器 E2E 和生产构建验收；Task 20 已补齐 Source / Index API 并接入 Web UI；Task 21 已新增 GitHub Actions CI；Task 22 已把 `POST /index/run` 演进为后台任务触发。
 
 下一步优先推进：
 
-1. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，补充真实后端浏览器 E2E、真实本地目录索引和生产构建复验结果。
+1. 端到端验收：以 [mvp-acceptance-report.md](mvp-acceptance-report.md) 为验收清单，继续扩展更大真实本地目录索引回归和可选真实外部模型浏览器 E2E。
 2. push 到 GitHub 后查看 Actions 页面，确认 `CI` workflow 首次远端运行结果。
 3. 推进真实模型 provider HTTP client，验证 Chat API 的真实模型调用。
 4. 评估是否需要把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。

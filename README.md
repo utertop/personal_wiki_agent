@@ -26,12 +26,12 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 - Agent Tools：`search_notes`、`open_source`、`summarize_folder`、`build_topic_map` 已作为后端工具函数实现。
 - Source API：`GET /sources` 可列出数据源，`POST /sources` 可创建本地优先数据源。
 - Index API：`POST /index/run` 返回 `202 Accepted` 并创建 `queued` 后台索引任务，`GET /index/jobs` 可查看最近索引任务状态。
-- Web UI：`frontend/` 提供 React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口和索引任务入口。
+- Web UI：`frontend/` 提供 React + Vite + TypeScript 对话式 Agent 工作台，包含对话页、引用抽屉、工具活动流、数据源管理入口、索引任务入口和 Memory 管理入口。
 
 ### 未完成或待后续增强
 
 - OpenAI-compatible provider 层已具备 Chat Completions 调用能力，应用启动时可读取模型配置并从环境变量解析 token 挂载 `ModelRouter`；NVIDIA OpenAI-compatible smoke test 已通过，Ollama 本地 smoke test 仍需等本机服务和模型就绪后执行。
-- Web UI 已补充真实后端浏览器 E2E；后续可扩展更大真实资料夹、真实外部模型慢速 E2E 和 Memory 管理 UI 覆盖。
+- Web UI 已补充真实后端浏览器 E2E，并覆盖 Memory 管理 UI；后续可扩展更大真实资料夹和真实外部模型慢速 E2E。
 - 云端笔记 connector、自动写回云端笔记、OCR、复杂自动化工作流、企业级多用户和移动端不属于当前 MVP 已完成范围。
 
 ## 本地运行
@@ -256,6 +256,8 @@ Invoke-RestMethod `
 
 Memory 验收已通过 `backend/tests/test_memory.py` 和 `backend/tests/test_chat_api.py` 覆盖。
 
+前端 Memory 管理入口已接入 `GET /memory` 和 `POST /memory`，支持查看、按关键词/类型筛选、限制返回条数，以及手动新增长期记忆。归档和删除仍需后端先补 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}` 后再接入 UI。
+
 ## Web UI
 
 `frontend/` 已提供 React + Vite + TypeScript 对话式 Agent 工作台，主入口是对话，不是复杂后台配置页。
@@ -277,14 +279,13 @@ npm run build
 - `npm.cmd test` 通过，覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
 - `npm.cmd exec tsc -- --noEmit` 通过，前端 TypeScript 类型检查通过。
 - Python Playwright UI 主流程脚本通过，覆盖默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务；本次 API 使用浏览器路由 mock。
-- `npm.cmd run test:e2e` 通过，使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，覆盖创建 source、触发索引、Chat 提问、引用和来源抽屉。
+- `npm.cmd run test:e2e` 通过，使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，覆盖 Memory 新增/筛选、创建 source、触发索引、Chat 提问、引用和来源抽屉。
 - `npm.cmd run build` 已在本地验证通过，生产构建可生成输出。
 
 真实后端浏览器 E2E 后续可以继续扩展：
 
 - 使用更大的真实资料夹做批量索引回归。
 - 增加可显式开启的真实外部模型浏览器 E2E。
-- 把 Memory 管理 UI 纳入浏览器 E2E。
 
 ## 打包与运行说明
 

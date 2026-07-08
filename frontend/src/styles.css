@@ -572,7 +572,8 @@ button {
 }
 
 .inline-form input,
-.inline-form select {
+.inline-form select,
+.inline-form textarea {
   width: 100%;
   min-height: 38px;
   border: 1px solid #d5ddd8;
@@ -580,6 +581,24 @@ button {
   background: #ffffff;
   color: #1f2723;
   padding: 8px;
+}
+
+.inline-form textarea {
+  resize: vertical;
+}
+
+.memory-filter-form {
+  grid-template-columns: minmax(180px, 1.5fr) minmax(190px, 1fr) minmax(100px, 0.5fr) auto;
+}
+
+.memory-create-form {
+  grid-template-columns: minmax(160px, 0.8fr) minmax(260px, 2fr) minmax(130px, 0.7fr) minmax(110px, 0.5fr) minmax(190px, 0.9fr) auto;
+}
+
+.long-cell {
+  min-width: 260px;
+  max-width: 520px;
+  overflow-wrap: anywhere;
 }
 
 .table-wrap {
@@ -668,7 +687,7 @@ tr:last-child td {
   }
 
   .nav-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     width: 100%;
   }
 
@@ -709,7 +728,9 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
-  .inline-form {
+  .inline-form,
+  .memory-filter-form,
+  .memory-create-form {
     grid-template-columns: 1fr;
     margin: 8px 16px 12px;
   }
