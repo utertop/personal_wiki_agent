@@ -4,10 +4,24 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
+from app.indexing.embedding import EmbeddingResult
+from app.indexing.vector_store import InMemoryVectorStore
 from app.main import create_app
 
 
-def make_client() -> TestClient:
+class ApiEmbeddingStub:
+    def embed_texts(self, texts):
+        return [
+            EmbeddingResult(
+                text_index=index,
+                text=text,
+                vector=[1.0, 0.0],
+            )
+            for index, text in enumerate(texts)
+        ]
+
+
+def make_client(embedder=None, vector_store=None) -> TestClient:
     """创建共享内存数据库的 API 测试客户端。"""
 
     engine = create_engine(
@@ -19,6 +33,10 @@ def make_client() -> TestClient:
     session_factory = sessionmaker(bind=engine)
     app = create_app()
     app.state.session_factory = session_factory
+    if embedder is not None:
+        app.state.embedder = embedder
+    if vector_store is not None:
+        app.state.vector_store = vector_store
     return TestClient(app)
 
 
@@ -94,6 +112,29 @@ def test_index_api_runs_source_and_lists_jobs(tmp_path) -> None:
     assert jobs_response.json()["items"][0]["status"] == "completed"
     assert search_response.status_code == 200
     assert search_response.json()["results"][0]["document"]["title"] == "rag"
+
+
+def test_index_api_writes_vectors_when_semantic_dependencies_are_configured(tmp_path) -> None:
+    """Verify background indexing passes app-level vector dependencies into the pipeline."""
+
+    note = tmp_path / "semantic.md"
+    note.write_text("# Semantic\n\nsemantic indexing content", encoding="utf-8")
+    vector_store = InMemoryVectorStore()
+    client = make_client(embedder=ApiEmbeddingStub(), vector_store=vector_store)
+    source = client.post(
+        "/sources",
+        json={
+            "source_type": "local_directory",
+            "name": "Semantic Source",
+            "uri": str(tmp_path),
+        },
+    ).json()
+
+    response = client.post("/index/run", json={"source_id": source["source_id"]})
+
+    hits = vector_store.search([1.0, 0.0], limit=5)
+    assert response.status_code == 202
+    assert [hit.text for hit in hits] == ["semantic indexing content"]
 
 
 def test_index_api_runs_all_enabled_sources(tmp_path) -> None:

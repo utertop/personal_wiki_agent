@@ -94,7 +94,7 @@ def chat(
     session: Session = Depends(get_db_session),
 ) -> ChatResponse:
     """基于个人知识库检索结果生成带来源引用的回答。"""
-    search_results = _search_for_chat(session, request)
+    search_results = _search_for_chat(session, request, http_request)
     context = build_answer_context(search_results)
     if not context.has_reliable_sources:
         return _answer_response(AnswerSynthesizer().generate(request.message, context))
@@ -118,7 +118,7 @@ def chat(
     return _answer_response(answer, memories_used=memory_context)
 
 
-def _search_for_chat(session: Session, request: ChatRequest) -> List[SearchResultResponse]:
+def _search_for_chat(session: Session, request: ChatRequest, http_request: Request) -> List[SearchResultResponse]:
     """执行 Chat API 内部检索，并复用 Search API 的来源补齐逻辑。"""
     search_query = SearchQuery(
         query=_chat_search_query(request.message),
@@ -130,7 +130,11 @@ def _search_for_chat(session: Session, request: ChatRequest) -> List[SearchResul
     if not search_query.normalized_query:
         return []
 
-    retriever = HybridRetriever(lexical_index=SQLiteFtsIndex(session))
+    retriever = HybridRetriever(
+        lexical_index=SQLiteFtsIndex(session),
+        vector_store=getattr(http_request.app.state, "vector_store", None),
+        embedder=getattr(http_request.app.state, "embedder", None),
+    )
     return [
         enriched
         for result in retriever.search(search_query)

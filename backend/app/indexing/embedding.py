@@ -24,6 +24,29 @@ class Embedder(ABC):
         raise NotImplementedError
 
 
+class ProviderEmbeddingAdapter(Embedder):
+    """Adapt a configured model provider embedding client to the indexing Embedder interface."""
+
+    def __init__(self, client) -> None:
+        self.client = client
+
+    def embed_texts(self, texts: Sequence[str]) -> List[EmbeddingResult]:
+        raw_vectors = self.client.embed_texts(texts)
+        return [
+            EmbeddingResult(
+                text_index=index,
+                text=text,
+                vector=list(raw_vectors[index]),
+                metadata={
+                    "provider_id": getattr(self.client, "provider_id", None),
+                    "model_id": getattr(self.client, "model_id", None),
+                    "dimensions": len(raw_vectors[index]),
+                },
+            )
+            for index, text in enumerate(texts)
+        ]
+
+
 class HashingEmbedder(Embedder):
     """无需外部模型的确定性 embedding 实现，用于 MVP 早期测试 VectorStore 契约。"""
 

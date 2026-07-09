@@ -10,6 +10,39 @@ from app.models.document import Document
 from app.repositories.sources import SourceRepository
 
 
+class RecordingEmbedder:
+    def __init__(self) -> None:
+        self.texts = []
+
+    def embed_texts(self, texts):
+        from app.indexing.embedding import EmbeddingResult
+
+        self.texts.append(list(texts))
+        return [
+            EmbeddingResult(
+                text_index=index,
+                text=text,
+                vector=[1.0, 0.0] if index == 0 else [0.0, 1.0],
+            )
+            for index, text in enumerate(texts)
+        ]
+
+
+class RecordingVectorStore:
+    def __init__(self) -> None:
+        self.records = []
+        self.deleted_document_ids = []
+
+    def upsert(self, records):
+        self.records.extend(records)
+
+    def search(self, query_vector, filters=None, limit=10):
+        return []
+
+    def delete_document(self, document_id):
+        self.deleted_document_ids.append(document_id)
+
+
 def make_session():
     """创建测试用内存数据库会话，并初始化全部模型表。"""
 
@@ -153,6 +186,29 @@ def test_pipeline_writes_chunks_to_lexical_index_when_configured(tmp_path) -> No
     hits = lexical_index.search("检索")
     assert len(hits) == 1
     assert hits[0].document_id == session.query(Document).one().document_id
+
+
+def test_pipeline_writes_chunks_to_vector_store_when_configured(tmp_path) -> None:
+    """Verify indexing writes generated chunk embeddings to the configured vector store."""
+
+    note = tmp_path / "semantic.md"
+    note.write_text("# Semantic\n\nvector enabled content", encoding="utf-8")
+    session = make_session()
+    source = create_local_source(session, tmp_path)
+    embedder = RecordingEmbedder()
+    vector_store = RecordingVectorStore()
+
+    IndexingPipeline(session, embedder=embedder, vector_store=vector_store).run_source_index(source.source_id)
+
+    document = session.query(Document).one()
+    chunk = session.query(Chunk).one()
+    assert embedder.texts == [["vector enabled content"]]
+    assert len(vector_store.records) == 1
+    assert vector_store.records[0].chunk_id == chunk.chunk_id
+    assert vector_store.records[0].document_id == document.document_id
+    assert vector_store.records[0].source_id == source.source_id
+    assert vector_store.records[0].text == "vector enabled content"
+    assert vector_store.records[0].metadata["heading_path"] == "Semantic"
 
 
 def test_pipeline_removes_lexical_hits_for_deleted_documents(tmp_path) -> None:

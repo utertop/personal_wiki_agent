@@ -13,7 +13,11 @@ from app.api.routes_memory import router as memory_router
 from app.api.routes_search import router as search_router
 from app.api.routes_sources import router as sources_router
 from app.core.settings import AppSettings, load_settings
+from app.indexing.embedding import ProviderEmbeddingAdapter
+from app.indexing.vector_store import SQLiteVectorStore
 from app.llm.bootstrap import build_model_router
+from app.llm.provider import ProviderConfigurationError
+from app.llm.router import ModelRoutingError
 
 
 LOCAL_WEB_UI_ORIGINS = [
@@ -36,6 +40,7 @@ def create_app(
     model_router = build_model_router(resolved_settings, resolved_environ)
     if model_router is not None:
         app.state.model_router = model_router
+        configure_semantic_search(app, resolved_settings, model_router)
     configure_cors(app)
     app.include_router(health_router)
     app.include_router(search_router)
@@ -64,6 +69,23 @@ def configure_cors(app: FastAPI) -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+def configure_semantic_search(app: FastAPI, settings: AppSettings, model_router) -> None:
+    """Configure optional persistent vector search dependencies from application settings."""
+
+    if not settings.vector_store.enabled:
+        return
+
+    try:
+        selection = model_router.select_model("embedding")
+        embedding_client = selection.provider.get_embedding_client(selection.model.model_id)
+    except (ModelRoutingError, ProviderConfigurationError):
+        return
+
+    vector_path = settings.vector_store.path or (settings.data_dir / "vectors.sqlite3")
+    app.state.embedder = ProviderEmbeddingAdapter(embedding_client)
+    app.state.vector_store = SQLiteVectorStore(vector_path)
 
 
 app = create_app()

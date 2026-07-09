@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -87,6 +87,7 @@ class SearchResponse(BaseModel):
 @router.post("/search", response_model=SearchResponse)
 def search_notes(
     request: SearchRequest,
+    http_request: Request,
     session: Session = Depends(get_db_session),
 ) -> SearchResponse:
     """执行知识库搜索，并返回可追溯到来源文档和 chunk 的结果。"""
@@ -100,7 +101,11 @@ def search_notes(
     if not search_query.normalized_query:
         return SearchResponse(query=request.query, top_k=request.top_k, results=[])
 
-    retriever = HybridRetriever(lexical_index=SQLiteFtsIndex(session))
+    retriever = HybridRetriever(
+        lexical_index=SQLiteFtsIndex(session),
+        vector_store=getattr(http_request.app.state, "vector_store", None),
+        embedder=getattr(http_request.app.state, "embedder", None),
+    )
     results = [
         enriched
         for result in retriever.search(search_query)

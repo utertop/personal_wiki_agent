@@ -163,6 +163,58 @@ def test_openai_compatible_chat_client_posts_context_and_returns_answer() -> Non
     assert "用户偏好中文回答" in calls[0]["payload"]["messages"][-1]["content"]
 
 
+def test_openai_compatible_embedding_client_posts_inputs_and_returns_vectors() -> None:
+    """Verify OpenAI-compatible embedding calls use /embeddings and preserve input order."""
+
+    calls = []
+
+    def fake_embedding_transport(url, headers, payload, timeout):
+        calls.append(
+            {
+                "url": url,
+                "headers": headers,
+                "payload": payload,
+                "timeout": timeout,
+            }
+        )
+        return {
+            "data": [
+                {"index": 1, "embedding": [0.0, 1.0, 0.0]},
+                {"index": 0, "embedding": [1.0, 0.0, 0.0]},
+            ]
+        }
+
+    provider = OpenAICompatibleProvider(
+        ProviderConfig(
+            provider_id="openai",
+            provider_type="openai_compatible",
+            base_url="https://api.openai.example/v1/",
+            api_key="sk-test",
+            models=[
+                ModelInfo(
+                    provider_id="openai",
+                    model_id="embedding-model",
+                    display_name="Embedding Model",
+                    capabilities=["embedding"],
+                    embedding_dimensions=3,
+                )
+            ],
+        ),
+        embedding_transport=fake_embedding_transport,
+    )
+
+    client = provider.get_embedding_client("embedding-model")
+    vectors = client.embed_texts(["first text", "second text"])
+
+    assert vectors == [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+    assert calls[0]["url"] == "https://api.openai.example/v1/embeddings"
+    assert calls[0]["headers"]["Authorization"] == "Bearer sk-test"
+    assert calls[0]["payload"] == {
+        "model": "embedding-model",
+        "input": ["first text", "second text"],
+    }
+
+
 def test_ollama_provider_uses_local_config_without_api_key() -> None:
     """验证 Ollama Provider 使用本地配置且不要求 API Key。"""
 

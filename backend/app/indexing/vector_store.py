@@ -1,6 +1,9 @@
+import json
 import math
+import sqlite3
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 
@@ -106,6 +109,127 @@ class InMemoryVectorStore(VectorStore):
         }
 
 
+class SQLiteVectorStore(VectorStore):
+    """SQLite-backed VectorStore for local persistent semantic retrieval."""
+
+    def __init__(self, database_path: Path | str) -> None:
+        self.database_path = Path(database_path)
+        if str(self.database_path) != ":memory:":
+            self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize_schema()
+
+    def upsert(self, records: Sequence[VectorRecord]) -> None:
+        if not records:
+            return
+        with self._connect() as connection:
+            connection.executemany(
+                """
+                INSERT INTO vector_records (
+                    chunk_id,
+                    document_id,
+                    source_id,
+                    vector_json,
+                    text,
+                    metadata_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(chunk_id) DO UPDATE SET
+                    document_id = excluded.document_id,
+                    source_id = excluded.source_id,
+                    vector_json = excluded.vector_json,
+                    text = excluded.text,
+                    metadata_json = excluded.metadata_json
+                """,
+                [
+                    (
+                        record.chunk_id,
+                        record.document_id,
+                        record.source_id,
+                        json.dumps(list(record.vector)),
+                        record.text,
+                        json.dumps(record.metadata, ensure_ascii=False),
+                    )
+                    for record in records
+                ],
+            )
+
+    def search(
+        self,
+        query_vector: Sequence[float],
+        filters: Optional[VectorSearchFilters] = None,
+        limit: int = 10,
+    ) -> List[VectorSearchHit]:
+        if limit <= 0:
+            return []
+
+        where_clauses: List[str] = []
+        params: List[int] = []
+        if filters is not None and filters.source_id is not None:
+            where_clauses.append("source_id = ?")
+            params.append(filters.source_id)
+        if filters is not None and filters.document_id is not None:
+            where_clauses.append("document_id = ?")
+            params.append(filters.document_id)
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT chunk_id, document_id, source_id, vector_json, text, metadata_json
+                FROM vector_records
+                {where_sql}
+                """,
+                params,
+            ).fetchall()
+
+        hits = [
+            VectorSearchHit(
+                chunk_id=int(row["chunk_id"]),
+                document_id=int(row["document_id"]),
+                source_id=int(row["source_id"]),
+                score=_cosine_similarity(query_vector, _loads_vector(row["vector_json"])),
+                text=row["text"],
+                metadata=_loads_metadata(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+        hits.sort(key=lambda hit: (-hit.score, hit.chunk_id))
+        return hits[:limit]
+
+    def delete_document(self, document_id: int) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM vector_records WHERE document_id = ?",
+                (document_id,),
+            )
+
+    def _initialize_schema(self) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS vector_records (
+                    chunk_id INTEGER PRIMARY KEY,
+                    document_id INTEGER NOT NULL,
+                    source_id INTEGER NOT NULL,
+                    vector_json TEXT NOT NULL,
+                    text TEXT,
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_vector_records_document_id ON vector_records(document_id)"
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_vector_records_source_id ON vector_records(source_id)"
+            )
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(str(self.database_path))
+        connection.row_factory = sqlite3.Row
+        return connection
+
+
 def _matches_filters(record: VectorRecord, filters: Optional[VectorSearchFilters]) -> bool:
     """判断向量记录是否命中过滤条件；未传过滤条件时全部保留。"""
     if filters is None:
@@ -131,3 +255,15 @@ def _cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
         return 0.0
     dot_product = sum(left_values[index] * right_values[index] for index in range(size))
     return dot_product / (left_norm * right_norm)
+
+
+def _loads_vector(raw_value: str) -> List[float]:
+    values = json.loads(raw_value)
+    if not isinstance(values, list):
+        return []
+    return [float(value) for value in values]
+
+
+def _loads_metadata(raw_value: str) -> Dict[str, Any]:
+    values = json.loads(raw_value or "{}")
+    return values if isinstance(values, dict) else {}

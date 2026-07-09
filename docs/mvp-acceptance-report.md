@@ -71,10 +71,16 @@
 
 ## 未完成能力
 
-- 更长链路的真实资料夹浏览器 E2E，以及可选真实外部模型浏览器 E2E。
-- Ollama 本地 smoke test 执行结果、真实 embedding 和持久化向量库。
+- 索引任务可靠性升级，以及可选真实外部模型浏览器 E2E。
+- Ollama 本地 smoke test 执行结果，以及更大规模向量库实现评估。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 
+## 2026-07-09 Phase 2 Memory 管理复验
+
+- Memory API 已补齐 `PATCH /memory/{memory_id}` 和 `DELETE /memory/{memory_id}`：支持编辑内容、来源、置信度、过期时间和状态；删除采用软删除，将 `status` 置为 `deleted`。
+- `GET /memory` 仍只返回 active 且未过期的长期记忆；归档和软删除后的记忆不会出现在 active 列表，也不会作为文档 citation 来源。
+- Web UI Memory 管理页已接入编辑、归档和删除；真实后端 Playwright E2E 增加“创建后归档并确认 active 列表为空”的回归覆盖。
+- 本轮质量门以本报告末尾记录的最新命令输出为准。
 ## 文档一致性体检
 
 | 文档 | 体检结果 | 后续动作 |
@@ -123,3 +129,18 @@ npm run build
 2. 本机 Ollama 服务和模型就绪后，执行 `backend/tests/test_ollama_smoke.py` 验证本地模型闭环。
 3. 后续如本地 MVP 索引耗时继续增加，再把 FastAPI BackgroundTasks 演进为持久化任务队列和独立 worker。
 4. push 后查看 GitHub Actions `CI` workflow 首次远端运行结果，并把结果回写到本报告。
+
+## 2026-07-09 Phase 6 真实资料夹回归复验
+
+- 新增 `backend/tests/test_real_folder_regression.py`，用临时资料夹生成 Markdown、txt、PDF、docx、HTML 五种格式文件，并覆盖 5 个固定查询、source/document/chunk 数量、format metadata 与 citation 可追踪性。
+- 修复 `Chunker` 在解析结果存在空 section 时直接返回空 chunk 的问题；HTML/DOCX 这类“标题在 sections、正文在 text”的结果现在会回退到全文切分。
+- 真实后端 Playwright E2E 扩展为两份资料：原 RAG 文档 + 嵌套长路径文档，并验证索引 `2 / 2`、第二轮 Chat citation、长标题、长片段和长路径在来源抽屉中可展示。
+- 本轮局部验证已通过：`pytest backend\tests\test_chunker.py backend\tests\test_real_folder_regression.py -q` 为 `6 passed`，`npm.cmd run test:e2e` 为 `1 passed`。
+
+## 2026-07-09 Phase 4 真实 Embedding 与持久化向量库复验
+
+- 第一版持久化向量库选定为 `SQLiteVectorStore`：使用本地 SQLite 文件保存 chunk 向量、文本和 metadata，不新增 Chroma/sqlite-vec 等外部依赖，保留现有 `VectorStore` 接口。
+- OpenAI-compatible provider 已支持 `/embeddings` 调用，索引层通过 `ProviderEmbeddingAdapter` 消费 provider embedding client，不直接依赖 provider 细节。
+- `IndexingPipeline` 在配置 `embedder` 和 `vector_store` 时会写入向量；文档删除或重建时同步清理旧向量。
+- `POST /search`、`POST /chat` 和 `POST /index/run` 已接入 app state 中的 semantic dependencies；未启用向量库时仍保持纯 FTS 行为。
+- 本轮 Phase 4 后端目标验证通过：`pytest backend\tests\test_vector_store_contract.py backend\tests\test_model_registry.py backend\tests\test_settings.py backend\tests\test_app_model_router.py backend\tests\test_indexing_pipeline.py backend\tests\test_search_api.py backend\tests\test_chat_api.py backend\tests\test_source_index_api.py -q` 为 `54 passed`。

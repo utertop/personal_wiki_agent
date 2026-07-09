@@ -1,6 +1,11 @@
 data_dir: data
 database_url: sqlite:///data/personal_wiki_agent.db
 
+vector_store:
+  enabled: false
+  provider: sqlite
+  path: data/vectors.sqlite3
+
 sources:
   - source_type: local_directory
     name: 本地学习资料

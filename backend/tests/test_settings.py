@@ -15,6 +15,7 @@ def test_load_settings_uses_safe_defaults() -> None:
     assert settings.database_url == "sqlite:///data/personal_wiki_agent.db"
     assert settings.sources == []
     assert settings.model.chat_provider == "openai-compatible"
+    assert settings.vector_store.enabled is False
     assert settings.privacy.ignore_patterns == []
 
 
@@ -36,6 +37,8 @@ def test_load_settings_reads_example_config() -> None:
     assert settings.model.providers["openai"].api_key_env == "PERSONAL_WIKI_OPENAI_API_KEY"
     assert settings.model.providers["nvidia"].api_key_env == "PERSONAL_WIKI_NVIDIA_API_KEY"
     assert settings.model.defaults["chat"] == "nvidia/meta/llama-3.1-70b-instruct"
+    assert settings.vector_store.provider == "sqlite"
+    assert settings.vector_store.path == Path("data/vectors.sqlite3")
     assert "*.tmp" in settings.privacy.ignore_patterns
 
 

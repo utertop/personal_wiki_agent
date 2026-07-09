@@ -10,8 +10,10 @@ from app.connectors.local_synced_notes import LocalSyncedNotesConnector
 from app.connectors.obsidian_vault import ObsidianVaultConnector
 from app.core.settings import SourceConfig
 from app.indexing.chunker import ChunkInput, Chunker
+from app.indexing.embedding import Embedder
 from app.indexing.lexical import LexicalIndex
 from app.indexing.sync import MatchedDocumentChange, detect_changes
+from app.indexing.vector_store import VectorRecord, VectorStore
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.index_job import IndexJob
@@ -52,6 +54,8 @@ class IndexingPipeline:
         parsers: Optional[Sequence[ParserAdapter]] = None,
         chunker: Optional[Chunker] = None,
         lexical_index: Optional[LexicalIndex] = None,
+        embedder: Optional[Embedder] = None,
+        vector_store: Optional[VectorStore] = None,
         connector_types: Optional[Dict[str, Type[Connector]]] = None,
     ) -> None:
         """初始化索引流水线依赖，允许测试或后续云端 connector 注入替换实现。"""
@@ -62,6 +66,8 @@ class IndexingPipeline:
         self.parsers = list(parsers or _default_parsers())
         self.chunker = chunker or Chunker()
         self.lexical_index = lexical_index
+        self.embedder = embedder
+        self.vector_store = vector_store
         self.connector_types = connector_types or _default_connector_types()
 
     def run_source_index(self, source_id: int, job_id: Optional[int] = None) -> IndexJob:
@@ -86,6 +92,8 @@ class IndexingPipeline:
             for deleted_change in changes.deleted:
                 if self.lexical_index is not None:
                     self.lexical_index.delete_document(deleted_change.existing.document_id)
+                if self.vector_store is not None:
+                    self.vector_store.delete_document(deleted_change.existing.document_id)
                 self.documents.update_document_status(
                     deleted_change.existing.document_id,
                     deleted_change.target_status,
@@ -141,6 +149,7 @@ class IndexingPipeline:
             )
             chunks = self._write_chunks(document.document_id, parse_result)
             self._index_lexical_chunks(chunks)
+            self._index_vector_chunks(chunks, source_id=source_id)
             return PipelineResult(document=document)
         except UnsupportedParserError as error:
             return PipelineResult(document=None, error=str(error))
@@ -163,9 +172,12 @@ class IndexingPipeline:
 
             if self.lexical_index is not None:
                 self.lexical_index.delete_document(document.document_id)
+            if self.vector_store is not None:
+                self.vector_store.delete_document(document.document_id)
             self.documents.delete_chunks(document.document_id)
             chunks = self._write_chunks(document.document_id, parse_result)
             self._index_lexical_chunks(chunks)
+            self._index_vector_chunks(chunks, source_id=document.source_id)
             return PipelineResult(document=document)
         except UnsupportedParserError as error:
             return PipelineResult(document=None, error=str(error))
@@ -192,6 +204,32 @@ class IndexingPipeline:
         if self.lexical_index is None or not chunks:
             return
         self.lexical_index.index_chunks(chunks)
+
+    def _index_vector_chunks(self, chunks: Sequence[Chunk], source_id: int) -> None:
+        """Write chunk embeddings to the configured VectorStore when semantic search is enabled."""
+        if self.embedder is None or self.vector_store is None or not chunks:
+            return
+
+        embeddings = self.embedder.embed_texts([chunk.text for chunk in chunks])
+        records = []
+        for embedding in embeddings:
+            chunk = chunks[embedding.text_index]
+            metadata = dict(chunk.metadata_json or {})
+            if chunk.heading_path is not None:
+                metadata["heading_path"] = chunk.heading_path
+            if chunk.page_number is not None:
+                metadata["page_number"] = chunk.page_number
+            records.append(
+                VectorRecord(
+                    chunk_id=chunk.chunk_id,
+                    document_id=chunk.document_id,
+                    source_id=source_id,
+                    vector=embedding.vector,
+                    text=chunk.text,
+                    metadata=metadata,
+                )
+            )
+        self.vector_store.upsert(records)
 
     def _parse_item(self, item: DiscoveredItem) -> ParseResult:
         """为扫描条目选择匹配 parser 并执行解析，不支持的文件会抛出可记录错误。"""

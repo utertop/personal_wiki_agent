@@ -6,7 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
+from app.indexing.embedding import EmbeddingResult
 from app.indexing.sqlite_fts import SQLiteFtsIndex
+from app.indexing.vector_store import VectorSearchHit
 from app.llm.provider import ModelInfo, ProviderConfigurationError
 from app.main import create_app
 from app.repositories.documents import DocumentRepository
@@ -102,6 +104,32 @@ class MissingKeyModelRouter:
         return FakeSelection(task=task, provider=self.provider, model=self.model)
 
 
+class ChatApiVectorEmbedder:
+    def embed_texts(self, texts):
+        return [
+            EmbeddingResult(
+                text_index=index,
+                text=text,
+                vector=[1.0, 0.0],
+            )
+            for index, text in enumerate(texts)
+        ]
+
+
+class ChatApiVectorStore:
+    def __init__(self, hit: VectorSearchHit) -> None:
+        self.hit = hit
+
+    def upsert(self, records):
+        raise AssertionError("chat API should not write vectors")
+
+    def search(self, query_vector, filters=None, limit=10):
+        return [self.hit]
+
+    def delete_document(self, document_id):
+        raise AssertionError("chat API should not delete vectors")
+
+
 def make_client_with_indexed_knowledge(model_router=None):
     """创建带内存数据库、FTS 索引和可选模型路由器的 Chat API 测试客户端。"""
 
@@ -175,6 +203,32 @@ def test_chat_api_generates_answer_with_traceable_citations() -> None:
     assert model_router.last_task == "chat"
     assert fake_client.last_question == "RAG 怎么帮助个人知识库？"
     assert fake_client.last_context.items[0].document_metadata["relative_path"] == "rag.md"
+
+
+def test_chat_api_uses_configured_vector_dependencies_for_retrieval() -> None:
+    """Verify Chat API can answer from vector-only hits when semantic dependencies are configured."""
+
+    fake_client = FakeChatModelClient()
+    model_router = FakeModelRouter(fake_client)
+    client, document_id, chunk_id = make_client_with_indexed_knowledge(model_router)
+    client.app.state.embedder = ChatApiVectorEmbedder()
+    client.app.state.vector_store = ChatApiVectorStore(
+        VectorSearchHit(
+            chunk_id=chunk_id,
+            document_id=document_id,
+            source_id=1,
+            score=0.91,
+            text="vector-only semantic context",
+            metadata={"heading_path": "Vector"},
+        )
+    )
+
+    response = client.post("/chat", json={"message": "semantic-only", "top_k": 3})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["citations"][0]["chunk_id"] == chunk_id
+    assert fake_client.last_context.items[0].text == "vector-only semantic context"
 
 
 def test_chat_api_relaxes_english_question_words_for_retrieval() -> None:

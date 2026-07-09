@@ -4,10 +4,40 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
+from app.indexing.embedding import EmbeddingResult
 from app.indexing.sqlite_fts import SQLiteFtsIndex
+from app.indexing.vector_store import VectorSearchHit
 from app.main import create_app
 from app.repositories.documents import DocumentRepository
 from app.repositories.sources import SourceRepository
+
+
+class SearchApiVectorEmbedder:
+    def embed_texts(self, texts):
+        return [
+            EmbeddingResult(
+                text_index=index,
+                text=text,
+                vector=[1.0, 0.0, 0.0],
+            )
+            for index, text in enumerate(texts)
+        ]
+
+
+class SearchApiVectorStore:
+    def __init__(self, hit: VectorSearchHit) -> None:
+        self.hit = hit
+        self.last_query_vector = None
+
+    def upsert(self, records):
+        raise AssertionError("search API should not write vectors")
+
+    def search(self, query_vector, filters=None, limit=10):
+        self.last_query_vector = list(query_vector)
+        return [self.hit]
+
+    def delete_document(self, document_id):
+        raise AssertionError("search API should not delete vectors")
 
 
 def make_client_with_indexed_knowledge():
@@ -120,6 +150,34 @@ def test_search_filters_results_by_file_type() -> None:
     assert len(markdown_response.json()["results"]) == 1
     assert pdf_response.status_code == 200
     assert pdf_response.json()["results"] == []
+
+
+def test_search_uses_configured_vector_dependencies() -> None:
+    """Verify Search API includes vector hits when app state has embedder and vector store."""
+
+    client, document_id, chunk_id, source_id = make_client_with_indexed_knowledge()
+    vector_store = SearchApiVectorStore(
+        VectorSearchHit(
+            chunk_id=chunk_id,
+            document_id=document_id,
+            source_id=source_id,
+            score=0.87,
+            text="semantic-only vector hit",
+            metadata={"heading_path": "Vector Semantic"},
+        )
+    )
+    client.app.state.embedder = SearchApiVectorEmbedder()
+    client.app.state.vector_store = vector_store
+
+    response = client.post("/search", json={"query": "semantic-only", "top_k": 5})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [result["chunk_id"] for result in body["results"]] == [chunk_id]
+    assert body["results"][0]["lexical_score"] == 0.0
+    assert body["results"][0]["vector_score"] == 0.87
+    assert body["results"][0]["text"] == "semantic-only vector hit"
+    assert vector_store.last_query_vector == [1.0, 0.0, 0.0]
 
 
 def test_document_detail_returns_chunks_and_source() -> None:

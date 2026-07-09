@@ -74,6 +74,10 @@ class EmbeddingModelClient:
     model_id: str
     base_url: Optional[str] = None
 
+    def embed_texts(self, texts: Sequence[str]) -> List[List[float]]:
+        """Generate embeddings for a batch of texts using the configured provider client."""
+        raise ProviderConfigurationError("embedding_generation_not_implemented")
+
 
 class ModelProvider(ABC):
     """所有模型 provider 的抽象基类，上层业务只能依赖该接口。"""

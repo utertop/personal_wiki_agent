@@ -81,6 +81,8 @@ def run_index(
         run_queued_index_jobs,
         _session_factory_for_background(http_request),
         [(job.source_id, job.job_id) for job in jobs],
+        getattr(http_request.app.state, "embedder", None),
+        getattr(http_request.app.state, "vector_store", None),
     )
 
     source_names = _source_names(session)
@@ -143,12 +145,22 @@ def _session_factory_for_background(request: Request):
     return create_session_factory(load_settings(None).database_url)
 
 
-def run_queued_index_jobs(session_factory: sessionmaker, job_specs: List[Tuple[int, int]]) -> None:
+def run_queued_index_jobs(
+    session_factory: sessionmaker,
+    job_specs: List[Tuple[int, int]],
+    embedder=None,
+    vector_store=None,
+) -> None:
     """在后台任务中逐个执行已排队索引任务，并为每个任务使用独立数据库 session。"""
     for source_id, job_id in job_specs:
         session = session_factory()
         try:
-            pipeline = IndexingPipeline(session, lexical_index=SQLiteFtsIndex(session))
+            pipeline = IndexingPipeline(
+                session,
+                lexical_index=SQLiteFtsIndex(session),
+                embedder=embedder,
+                vector_store=vector_store,
+            )
             pipeline.run_source_index(source_id, job_id=job_id)
         finally:
             session.close()

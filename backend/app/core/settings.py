@@ -69,6 +69,16 @@ class PrivacyConfig(BaseModel):
     ignore_patterns: List[str] = Field(default_factory=list)
 
 
+class VectorStoreConfig(BaseModel):
+    """Describe optional persistent vector store settings for semantic retrieval."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    provider: Literal["sqlite"] = "sqlite"
+    path: Optional[Path] = None
+
+
 class AppSettings(BaseModel):
     """聚合应用运行所需配置，是后端读取配置文件后的统一对象。"""
 
@@ -78,6 +88,7 @@ class AppSettings(BaseModel):
     database_url: str = "sqlite:///data/personal_wiki_agent.db"
     sources: List[SourceConfig] = Field(default_factory=list)
     model: ModelConfig = Field(default_factory=ModelConfig)
+    vector_store: VectorStoreConfig = Field(default_factory=VectorStoreConfig)
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
 
 

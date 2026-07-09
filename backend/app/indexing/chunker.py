@@ -35,7 +35,9 @@ class Chunker:
         """根据 ParseResult 的结构选择标题、页码或纯文本切分策略。"""
         parse_result = chunk_input.parse_result
         if parse_result.sections:
-            return self._chunk_sections(parse_result)
+            section_chunks = self._chunk_sections(parse_result)
+            if section_chunks:
+                return section_chunks
         if parse_result.page_map:
             return self._chunk_pages(parse_result)
         return self._chunk_plain_text(parse_result)

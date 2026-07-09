@@ -80,3 +80,19 @@ def test_chunker_skips_empty_sections_and_empty_text() -> None:
     )
 
     assert chunk_document(parse_result) == []
+
+
+def test_chunker_falls_back_to_full_text_when_sections_have_no_text() -> None:
+    """Verify HTML/DOCX-style heading-only sections do not suppress the full body text."""
+
+    parse_result = ParseResult(
+        title="HTML",
+        text="Workflow heading\nhtmlworkflowtopic body content",
+        sections=[ParsedSection(heading="Workflow heading", level=1, text="")],
+        metadata={"source_format": "html"},
+    )
+
+    chunks = chunk_document(parse_result)
+
+    assert [chunk.text for chunk in chunks] == ["Workflow heading\nhtmlworkflowtopic body content"]
+    assert chunks[0].heading_path is None

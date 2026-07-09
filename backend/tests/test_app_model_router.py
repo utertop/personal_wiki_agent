@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
-from app.core.settings import AppSettings, ModelConfig, ModelInfoConfig, ProviderSettings
+from app.core.settings import AppSettings, ModelConfig, ModelInfoConfig, ProviderSettings, VectorStoreConfig
+from app.indexing.embedding import ProviderEmbeddingAdapter
+from app.indexing.vector_store import SQLiteVectorStore
 from app.main import create_app
 
 
@@ -68,3 +70,48 @@ model:
 
     assert app.state.settings.model.providers["openai"].base_url == "https://api.openai.example/v1"
     assert app.state.model_router.select_model("chat").full_name == "openai/chat-model"
+
+
+def test_create_app_mounts_configured_embedding_and_vector_store(tmp_path) -> None:
+    """Verify app startup wires real embedding and persistent vector dependencies from settings."""
+
+    settings = AppSettings(
+        data_dir=tmp_path,
+        vector_store=VectorStoreConfig(
+            enabled=True,
+            provider="sqlite",
+            path=tmp_path / "semantic" / "vectors.sqlite3",
+        ),
+        model=ModelConfig(
+            providers={
+                "openai": ProviderSettings(
+                    type="openai_compatible",
+                    base_url="https://api.openai.example/v1",
+                    api_key_env="OPENAI_API_KEY",
+                    models=[
+                        ModelInfoConfig(
+                            id="embedding-model",
+                            display_name="Embedding Model",
+                            capabilities=["embedding"],
+                            embedding_dimensions=3,
+                        )
+                    ],
+                )
+            },
+            defaults={"embedding": "openai/embedding-model"},
+        ),
+    )
+
+    app = create_app(settings=settings, environ={"OPENAI_API_KEY": "sk-test"})
+
+    assert isinstance(app.state.embedder, ProviderEmbeddingAdapter)
+    assert isinstance(app.state.vector_store, SQLiteVectorStore)
+
+
+def test_create_app_leaves_vector_dependencies_unset_by_default() -> None:
+    """Verify the default app keeps semantic search disabled unless vector_store is enabled."""
+
+    app = create_app(settings=AppSettings(), environ={})
+
+    assert not hasattr(app.state, "embedder")
+    assert not hasattr(app.state, "vector_store")

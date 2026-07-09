@@ -151,6 +151,33 @@ $env:PERSONAL_WIKI_ENABLE_OLLAMA_SMOKE = "1"
 .\.venv\Scripts\python.exe -m pytest backend/tests/test_ollama_smoke.py -q
 ```
 
+### 真实 embedding 和持久化向量库
+
+默认配置下，系统仍然只依赖 SQLite FTS 关键词检索，不会自动调用外部 embedding 服务。需要开启语义检索时，在配置文件中启用本地 SQLite 向量库，并提供具备 `embedding` 能力的 OpenAI-compatible provider：
+
+```yaml
+vector_store:
+  enabled: true
+  provider: sqlite
+  path: data/vectors.sqlite3
+
+model:
+  providers:
+    openai:
+      type: openai_compatible
+      base_url: https://api.openai.com/v1
+      api_key_env: PERSONAL_WIKI_OPENAI_API_KEY
+      models:
+        - id: text-embedding-3-small
+          display_name: OpenAI Embedding
+          capabilities:
+            - embedding
+          embedding_dimensions: 1536
+  defaults:
+    embedding: openai/text-embedding-3-small
+```
+
+启动后，`create_app` 会把 embedding client 适配为索引层 `Embedder`，并创建 `SQLiteVectorStore`。`POST /index/run` 会在写入 chunk 和 FTS 后同步写入向量；`POST /search` 和 `POST /chat` 会自动把向量命中并入 HybridRetriever。未启用 `vector_store.enabled` 或缺少可用 embedding 模型时，系统保持纯 FTS 路径。
 ## 本地目录索引
 
 当前可用的索引入口包括后端内部 `IndexingPipeline` 和 HTTP API：
@@ -252,12 +279,14 @@ Invoke-RestMethod `
 
 - `POST /memory`：请求体为 `{memory_type, content, source, confidence?, expires_at?}`，返回创建后的单条 memory。
 - `GET /memory?query=&memory_type=&limit=`：返回 `{items:[...]}`，只包含 active 且未过期的 memory。
+- `PATCH /memory/{memory_id}`：请求体为 `{memory_type?, content?, source?, confidence?, expires_at?, status?}`，可编辑记忆内容或把 `status` 改为 `active` / `archived`。
+- `DELETE /memory/{memory_id}`：软删除记忆，后端把 `status` 置为 `deleted` 并返回 `204 No Content`。
 - 支持的 `memory_type` 为 `user_preference`、`project_context`、`workflow_habit`、`stable_fact`。
 - `POST /chat` 响应包含 `memories_used: []`，用于和文档来源 `citations` 区分。
 
 Memory 验收已通过 `backend/tests/test_memory.py` 和 `backend/tests/test_chat_api.py` 覆盖。
 
-前端 Memory 管理入口已接入 `GET /memory` 和 `POST /memory`，支持查看、按关键词/类型筛选、限制返回条数，以及手动新增长期记忆。归档和删除仍需后端先补 `PATCH /memory/{memory_id}` 或 `DELETE /memory/{memory_id}` 后再接入 UI。
+前端 Memory 管理入口已接入 `GET /memory`、`POST /memory`、`PATCH /memory/{memory_id}` 和 `DELETE /memory/{memory_id}`，支持查看、筛选、手动新增、编辑、归档和软删除长期记忆。
 
 ## Web UI
 
@@ -280,12 +309,12 @@ npm run build
 - `npm.cmd test` 通过，覆盖 API client、工具活动流、对话视图、数据源视图和索引任务视图。
 - `npm.cmd exec tsc -- --noEmit` 通过，前端 TypeScript 类型检查通过。
 - Python Playwright UI 主流程脚本通过，覆盖默认 Chat 页、发送问题、展示引用、打开来源抽屉、创建数据源和触发索引任务；本次 API 使用浏览器路由 mock。
-- `npm.cmd run test:e2e` 通过，使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，覆盖 Memory 新增/筛选、创建 source、触发索引、Chat 提问、引用和来源抽屉。
+- `npm.cmd run test:e2e` 通过，使用真实 FastAPI 测试服务、内存 SQLite、fake model router 和 Vite 前端，覆盖 Memory 新增/筛选/归档、创建 source、触发索引、Chat 提问、引用、来源抽屉，以及长路径/长标题/长引用片段布局回归。
 - `npm.cmd run build` 已在本地验证通过，生产构建可生成输出。
 
 真实后端浏览器 E2E 后续可以继续扩展：
 
-- 使用更大的真实资料夹做批量索引回归。
+- 如后续资料规模继续扩大，可追加 20-50 文件级别的批量索引回归和性能基线。
 - 增加可显式开启的真实外部模型浏览器 E2E。
 
 ## 打包与运行说明

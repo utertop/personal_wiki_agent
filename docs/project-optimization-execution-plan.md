@@ -27,7 +27,7 @@ npm.cmd run test:e2e
 - CI 尚未运行 Playwright E2E。
 - Memory 只有创建和查询，缺少归档、删除和更新。
 - OpenAI-compatible 与 Ollama provider 的 prompt 构造重复。
-- 真实 embedding 与持久化向量库尚未落地。
+- 真实 embedding 与 SQLite 持久化向量库已完成第一版接入，后续可评估 sqlite-vec / Chroma 等更大规模实现。
 - 索引后台任务仍使用 FastAPI BackgroundTasks，可靠性有限。
 
 ## 执行原则
@@ -133,16 +133,16 @@ npm.cmd run test:e2e
 
 Checklist:
 
-- [ ] Memory store 支持更新。
-- [ ] Memory store 支持归档。
-- [ ] Memory store 支持软删除。
-- [ ] API 对不存在 memory 返回 404。
-- [ ] API 对非法 status 返回 422。
-- [ ] `GET /memory` 默认只返回 active 且未过期记录。
-- [ ] 前端可以归档一条 memory。
-- [ ] 前端可以删除一条 memory。
-- [ ] E2E 验证归档或删除后列表刷新。
-- [ ] 文档明确 Memory 不作为 citation 来源。
+- [x] Memory store 支持更新。
+- [x] Memory store 支持归档。
+- [x] Memory store 支持软删除。
+- [x] API 对不存在 memory 返回 404。
+- [x] API 对非法 status 返回 422。
+- [x] `GET /memory` 默认只返回 active 且未过期记录。
+- [x] 前端可以归档一条 memory。
+- [x] 前端可以删除一条 memory。
+- [x] E2E 验证归档或删除后列表刷新。
+- [x] 文档明确 Memory 不作为 citation 来源。
 
 ## Phase 3: Provider Prompt Builder 去重
 
@@ -233,15 +233,15 @@ Checklist:
 
 Checklist:
 
-- [ ] 选定第一版持久化向量库。
-- [ ] 新增 vector store 实现，不破坏现有接口。
-- [ ] 新增真实 embedding 调用路径。
-- [ ] 配置中能声明 embedding provider/model。
-- [ ] 索引 pipeline 能写入向量。
-- [ ] HybridRetriever 能读真实向量命中。
-- [ ] 没配置向量库时仍能只用 FTS 工作。
-- [ ] 增加小型检索评测 fixture。
-- [ ] README 说明如何开启真实 embedding。
+- [x] 选定第一版持久化向量库。
+- [x] 新增 vector store 实现，不破坏现有接口。
+- [x] 新增真实 embedding 调用路径。
+- [x] 配置中能声明 embedding provider/model。
+- [x] 索引 pipeline 能写入向量。
+- [x] HybridRetriever 能读真实向量命中。
+- [x] 没配置向量库时仍能只用 FTS 工作。
+- [x] 增加小型检索评测 fixture。
+- [x] README 说明如何开启真实 embedding。
 
 ## Phase 5: 索引任务可靠性升级
 
@@ -323,12 +323,12 @@ npm.cmd run test:e2e
 
 Checklist:
 
-- [ ] 准备多格式测试资料夹。
-- [ ] 覆盖至少 5 个固定查询。
-- [ ] 验证索引后 source/document/chunk 数量合理。
-- [ ] 验证 Chat citations 指向正确 document/chunk。
-- [ ] 验证 UI 不因长路径、长标题、长引用片段布局破裂。
-- [ ] 文档记录真实资料夹回归结果。
+- [x] 准备多格式测试资料夹。
+- [x] 覆盖至少 5 个固定查询。
+- [x] 验证索引后 source/document/chunk 数量合理。
+- [x] 验证 Chat citations 指向正确 document/chunk。
+- [x] 验证 UI 不因长路径、长标题、长引用片段布局破裂。
+- [x] 文档记录真实资料夹回归结果。
 
 ## 总体验收清单
 
