@@ -62,6 +62,8 @@ describe("MemoryView 长期记忆页", () => {
       createSource: vi.fn(),
       runIndex: vi.fn(),
       listIndexJobs: vi.fn(),
+      cancelIndexJob: vi.fn(),
+      retryIndexJob: vi.fn(),
     };
 
     render(<MemoryView client={client} />);
@@ -147,6 +149,8 @@ describe("MemoryView 长期记忆页", () => {
       createSource: vi.fn(),
       runIndex: vi.fn(),
       listIndexJobs: vi.fn(),
+      cancelIndexJob: vi.fn(),
+      retryIndexJob: vi.fn(),
     };
 
     render(<MemoryView client={client} />);

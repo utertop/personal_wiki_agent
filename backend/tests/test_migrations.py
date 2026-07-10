@@ -26,6 +26,10 @@ def test_alembic_upgrade_creates_core_tables(tmp_path) -> None:
 
     engine = create_engine(database_url)
     table_names = set(inspect(engine).get_table_names())
+    index_job_columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("index_jobs")
+    }
 
     assert {
         "sources",
@@ -35,6 +39,12 @@ def test_alembic_upgrade_creates_core_tables(tmp_path) -> None:
         "memories",
         "alembic_version",
     }.issubset(table_names)
+    assert {
+        "attempt_count",
+        "max_attempts",
+        "last_heartbeat_at",
+        "cancel_requested_at",
+    }.issubset(index_job_columns)
 
 
 def test_alembic_downgrade_base_removes_core_tables(tmp_path) -> None:

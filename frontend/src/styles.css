@@ -633,6 +633,18 @@ tr:last-child td {
   border-bottom: 0;
 }
 
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+}
+
+.row-actions .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

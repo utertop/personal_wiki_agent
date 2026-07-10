@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, RefreshCw } from "lucide-react";
+import { Play, RefreshCw, RotateCcw, XCircle } from "lucide-react";
 import type { IndexJobRecord, PersonalWikiApiClient } from "../api/client";
 
 export interface IndexJobsViewProps {
@@ -11,6 +11,7 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
   const [jobs, setJobs] = useState<IndexJobRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [busyJobId, setBusyJobId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +49,32 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
       setError(requestError instanceof Error ? requestError.message : "索引任务触发失败");
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function handleCancelJob(jobId: number) {
+    setBusyJobId(jobId);
+    setError(null);
+    try {
+      await client.cancelIndexJob(jobId);
+      await loadJobs();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "索引任务取消失败");
+    } finally {
+      setBusyJobId(null);
+    }
+  }
+
+  async function handleRetryJob(jobId: number) {
+    setBusyJobId(jobId);
+    setError(null);
+    try {
+      await client.retryIndexJob(jobId);
+      await pollJobsUntilSettled();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "索引任务重试失败");
+    } finally {
+      setBusyJobId(null);
     }
   }
 
@@ -90,17 +117,18 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
               <th>状态</th>
               <th>进度</th>
               <th>错误</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
             {jobs.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan={5}>暂无索引任务</td>
+                <td colSpan={6}>暂无索引任务</td>
               </tr>
             ) : null}
             {isLoading ? (
               <tr>
-                <td colSpan={5}>加载中</td>
+                <td colSpan={6}>加载中</td>
               </tr>
             ) : null}
             {jobs.map((row) => (
@@ -112,6 +140,32 @@ export function IndexJobsView({ client }: IndexJobsViewProps) {
                 </td>
                 <td>{row.processed_items} / {row.total_items}</td>
                 <td>{row.error_message ?? ""}</td>
+                <td>
+                  <div className="row-actions">
+                    {row.status === "queued" || row.status === "running" ? (
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`Cancel index job ${row.job_id}`}
+                        disabled={busyJobId === row.job_id}
+                        onClick={() => void handleCancelJob(row.job_id)}
+                      >
+                        <XCircle size={16} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                    {row.status === "failed" ? (
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`Retry index job ${row.job_id}`}
+                        disabled={busyJobId === row.job_id || (row.attempt_count ?? 0) >= (row.max_attempts ?? 3)}
+                        onClick={() => void handleRetryJob(row.job_id)}
+                      >
+                        <RotateCcw size={16} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -43,6 +43,8 @@ describe("SourcesView 数据源页", () => {
       createSource: vi.fn().mockResolvedValue({ source_id: 2 }),
       runIndex: vi.fn(),
       listIndexJobs: vi.fn(),
+      cancelIndexJob: vi.fn(),
+      retryIndexJob: vi.fn(),
     };
 
     render(<SourcesView client={client} />);

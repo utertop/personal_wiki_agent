@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
@@ -37,6 +37,10 @@ class IndexJobResponse(BaseModel):
     total_items: int
     processed_items: int
     failed_items: int
+    attempt_count: int
+    max_attempts: int
+    last_heartbeat_at: Optional[datetime] = None
+    cancel_requested_at: Optional[datetime] = None
     error_message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -101,6 +105,46 @@ def list_index_jobs(
     return IndexJobListResponse(items=[_job_response(job, source_names) for job in jobs])
 
 
+@router.post("/index/jobs/{job_id}/cancel", response_model=IndexJobResponse)
+def cancel_index_job(
+    job_id: int,
+    session: Session = Depends(get_db_session),
+) -> IndexJobResponse:
+    """Request cancellation for a queued or running index job."""
+
+    repository = IndexJobRepository(session)
+    job = repository.request_cancel(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="index_job_not_found")
+    return _job_response(job, _source_names(session))
+
+
+@router.post("/index/jobs/{job_id}/retry", response_model=IndexJobResponse, status_code=status.HTTP_202_ACCEPTED)
+def retry_index_job(
+    job_id: int,
+    background_tasks: BackgroundTasks,
+    http_request: Request,
+    session: Session = Depends(get_db_session),
+) -> IndexJobResponse:
+    """Re-queue a failed index job when it has remaining attempts."""
+
+    repository = IndexJobRepository(session)
+    existing = repository.get(job_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="index_job_not_found")
+    job = repository.retry_failed(job_id)
+    if job is None:
+        raise HTTPException(status_code=409, detail="index_job_not_retryable")
+    background_tasks.add_task(
+        run_queued_index_jobs,
+        _session_factory_for_background(http_request),
+        [(job.source_id, job.job_id)],
+        getattr(http_request.app.state, "embedder", None),
+        getattr(http_request.app.state, "vector_store", None),
+    )
+    return _job_response(job, _source_names(session))
+
+
 def _source_names(session: Session) -> Dict[int, str]:
     """读取 source_id 到 source 名称的映射，避免响应中只显示数字 ID。"""
 
@@ -123,6 +167,10 @@ def _job_response(job: IndexJob, source_names: Dict[int, str]) -> IndexJobRespon
         total_items=job.total_items,
         processed_items=job.processed_items,
         failed_items=job.failed_items,
+        attempt_count=job.attempt_count,
+        max_attempts=job.max_attempts,
+        last_heartbeat_at=job.last_heartbeat_at,
+        cancel_requested_at=job.cancel_requested_at,
         error_message=job.error_message,
         created_at=job.created_at,
         updated_at=job.updated_at,
@@ -155,6 +203,11 @@ def run_queued_index_jobs(
     for source_id, job_id in job_specs:
         session = session_factory()
         try:
+            repository = IndexJobRepository(session)
+            repository.recover_stale_running_jobs(stale_after=timedelta(minutes=15))
+            job = repository.get(job_id)
+            if job is None or job.status != "queued":
+                continue
             pipeline = IndexingPipeline(
                 session,
                 lexical_index=SQLiteFtsIndex(session),

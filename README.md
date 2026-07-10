@@ -213,7 +213,7 @@ Invoke-RestMethod `
 Invoke-RestMethod http://127.0.0.1:8000/index/jobs
 ```
 
-`POST /index/run` 不在请求内长时间阻塞索引；它会先返回排队任务，实际扫描和写入由后台任务继续执行。前端或 CLI 可轮询 `GET /index/jobs` 查看 `queued`、`running`、`completed`、`completed_with_errors` 或 `failed` 状态。
+`POST /index/run` 不在请求内长时间阻塞索引；它会先返回排队任务，实际扫描和写入由后台任务继续执行。前端或 CLI 可轮询 `GET /index/jobs` 查看 `queued`、`running`、`completed`、`completed_with_errors`、`failed` 或 `cancelled` 状态。`POST /index/jobs/{job_id}/cancel` 可取消 queued/running 任务，`POST /index/jobs/{job_id}/retry` 可在未耗尽 `max_attempts` 时重试 failed 任务；任务记录会保留 `attempt_count`、`last_heartbeat_at` 和 `cancel_requested_at`，用于后续恢复和排查。
 
 ## 搜索
 

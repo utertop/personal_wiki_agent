@@ -7,6 +7,7 @@ from app.db.base import Base
 from app.indexing.embedding import EmbeddingResult
 from app.indexing.vector_store import InMemoryVectorStore
 from app.main import create_app
+from app.repositories.index_jobs import IndexJobRepository
 
 
 class ApiEmbeddingStub:
@@ -167,3 +168,51 @@ def test_index_api_returns_404_for_missing_source() -> None:
     response = client.post("/index/run", json={"source_id": 9999})
 
     assert response.status_code == 404
+
+
+def test_index_api_cancels_queued_job(tmp_path) -> None:
+    """Verify queued index jobs can be cancelled before the runner starts them."""
+
+    client = make_client()
+    source = client.post(
+        "/sources",
+        json={"source_type": "local_directory", "name": "Cancel Source", "uri": str(tmp_path)},
+    ).json()
+    session = client.app.state.session_factory()
+    job = IndexJobRepository(session).create(source_id=source["source_id"], status="queued")
+    session.close()
+
+    response = client.post(f"/index/jobs/{job.job_id}/cancel")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+    jobs = client.get("/index/jobs").json()["items"]
+    assert jobs[0]["cancel_requested_at"] is not None
+
+
+def test_index_api_retries_failed_job(tmp_path) -> None:
+    """Verify failed jobs can be re-queued for another attempt."""
+
+    client = make_client()
+    source = client.post(
+        "/sources",
+        json={
+            "source_type": "local_directory",
+            "name": "Retry Source",
+            "uri": str(tmp_path),
+        },
+    ).json()
+    session = client.app.state.session_factory()
+    repository = IndexJobRepository(session)
+    job = repository.create(source_id=source["source_id"], status="queued")
+    repository.mark_running(job.job_id)
+    failed_job = repository.mark_failed(job.job_id, "boom")
+    session.close()
+
+    response = client.post(f"/index/jobs/{failed_job.job_id}/retry")
+
+    assert response.status_code == 202
+    body = response.json()
+    assert body["status"] == "queued"
+    assert body["attempt_count"] == failed_job.attempt_count
+    assert body["error_message"] is None

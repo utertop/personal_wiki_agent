@@ -71,7 +71,7 @@
 
 ## 未完成能力
 
-- 索引任务可靠性升级，以及可选真实外部模型浏览器 E2E。
+- 可选真实外部模型浏览器 E2E。
 - Ollama 本地 smoke test 执行结果，以及更大规模向量库实现评估。
 - 云端笔记 connector、自动写回、OCR、复杂自动化和企业级能力。
 
@@ -144,3 +144,10 @@ npm run build
 - `IndexingPipeline` 在配置 `embedder` 和 `vector_store` 时会写入向量；文档删除或重建时同步清理旧向量。
 - `POST /search`、`POST /chat` 和 `POST /index/run` 已接入 app state 中的 semantic dependencies；未启用向量库时仍保持纯 FTS 行为。
 - 本轮 Phase 4 后端目标验证通过：`pytest backend\tests\test_vector_store_contract.py backend\tests\test_model_registry.py backend\tests\test_settings.py backend\tests\test_app_model_router.py backend\tests\test_indexing_pipeline.py backend\tests\test_search_api.py backend\tests\test_chat_api.py backend\tests\test_source_index_api.py -q` 为 `54 passed`。
+## 2026-07-09 Phase 5 索引任务可靠性复验
+
+- `index_jobs` 新增 `attempt_count`、`max_attempts`、`last_heartbeat_at` 和 `cancel_requested_at`，并补充 Alembic 迁移 `0002_index_job_reliability`。
+- `IndexJobRepository` 支持 heartbeat、取消、失败任务重试和 stale running job 恢复：未耗尽尝试次数时重新排队，耗尽时标记 failed。
+- Index API 新增 `POST /index/jobs/{job_id}/cancel` 和 `POST /index/jobs/{job_id}/retry`；后台 runner 会跳过非 queued 任务，并在执行前恢复 stale running job。
+- Web UI 索引任务页已显示 failed reason，并为 queued/running job 提供取消入口，为 failed job 提供重试入口。
+- 本轮 Phase 5 目标验证通过：`pytest backend\tests\test_migrations.py backend\tests\test_index_job_reliability.py backend\tests\test_source_index_api.py -q` 为 `14 passed`，`npm.cmd test -- IndexJobsView.test.tsx` 为 `7 files / 13 tests passed`。

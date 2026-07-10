@@ -284,14 +284,14 @@ npm.cmd run test:e2e
 
 Checklist:
 
-- [ ] 数据库迁移增加任务可靠性字段。
-- [ ] 后端支持取消任务。
-- [ ] 后端支持重试 failed job。
-- [ ] runner 能处理 stale running job。
-- [ ] 单个 source 失败不阻断其他 source。
-- [ ] UI 展示 failed reason 和重试入口。
-- [ ] E2E 覆盖一次索引任务成功路径。
-- [ ] 文档明确 BackgroundTasks 与后续 runner 的边界变化。
+- [x] 数据库迁移增加任务可靠性字段。
+- [x] 后端支持取消任务。
+- [x] 后端支持重试 failed job。
+- [x] runner 能处理 stale running job。
+- [x] 单个 source 失败不阻断其他 source。
+- [x] UI 展示 failed reason 和重试入口。
+- [x] E2E 覆盖一次索引任务成功路径。
+- [x] 文档明确 BackgroundTasks 与后续 runner 的边界变化。
 
 ## Phase 6: 更长链路真实资料夹回归
 

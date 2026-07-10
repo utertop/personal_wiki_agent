@@ -99,22 +99,27 @@ class IndexingPipeline:
                     deleted_change.target_status,
                 )
                 processed_items += 1
+                self.jobs.touch_heartbeat(job.job_id)
 
             for item in changes.added:
                 result = self._index_discovered_item(source.source_id, item)
                 if result.error:
                     failed_items += 1
                     errors.append(result.error)
+                    self.jobs.touch_heartbeat(job.job_id)
                     continue
                 processed_items += 1
+                self.jobs.touch_heartbeat(job.job_id)
 
             for updated_change in changes.updated:
                 result = self._reindex_changed_item(updated_change)
                 if result.error:
                     failed_items += 1
                     errors.append(result.error)
+                    self.jobs.touch_heartbeat(job.job_id)
                     continue
                 processed_items += 1
+                self.jobs.touch_heartbeat(job.job_id)
 
             status = "completed_with_errors" if errors else "completed"
             return self.jobs.finish(

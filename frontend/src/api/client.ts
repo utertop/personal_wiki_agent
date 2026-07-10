@@ -172,6 +172,10 @@ export interface IndexJobRecord {
   total_items: number;
   processed_items: number;
   failed_items: number;
+  attempt_count?: number;
+  max_attempts?: number;
+  last_heartbeat_at?: string | null;
+  cancel_requested_at?: string | null;
   error_message?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -202,6 +206,8 @@ export interface PersonalWikiApiClient {
   createSource(request: CreateSourceRequest): Promise<SourceRecord>;
   runIndex(request: IndexRunRequest): Promise<IndexRunResponse>;
   listIndexJobs(params?: { limit?: number }): Promise<IndexJobListResponse>;
+  cancelIndexJob(jobId: number): Promise<IndexJobRecord>;
+  retryIndexJob(jobId: number): Promise<IndexJobRecord>;
 }
 
 /** 规范化 Chat API 响应，确保可选 memory 字段不会让 UI 读取失败。 */
@@ -276,6 +282,16 @@ export function createApiClient(baseUrl = ""): PersonalWikiApiClient {
     async listIndexJobs(params = {}) {
       const query = buildQuery(params);
       return requestJson<IndexJobListResponse>(apiBase, `/index/jobs${query}`);
+    },
+    async cancelIndexJob(jobId: number) {
+      return requestJson<IndexJobRecord>(apiBase, `/index/jobs/${jobId}/cancel`, {
+        method: "POST",
+      });
+    },
+    async retryIndexJob(jobId: number) {
+      return requestJson<IndexJobRecord>(apiBase, `/index/jobs/${jobId}/retry`, {
+        method: "POST",
+      });
     },
   };
 }
