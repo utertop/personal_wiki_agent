@@ -115,7 +115,7 @@ function Invoke-Checked {
     }
 }
 
-function Ensure-BackendDependencies {
+function Install-BackendDependencies {
     if ($NoInstall) {
         Write-Step "Backend install skipped"
         return
@@ -140,7 +140,7 @@ function Ensure-BackendDependencies {
     Save-HashMarker $marker $hash
 }
 
-function Ensure-FrontendDependencies {
+function Install-FrontendDependencies {
     if ($NoInstall) {
         Write-Step "Frontend install skipped"
         return
@@ -273,8 +273,8 @@ try {
     [Environment]::SetEnvironmentVariable("PERSONAL_WIKI_CONFIG_PATH", $ResolvedConfigPath, "Process")
     [Environment]::SetEnvironmentVariable("VITE_API_BASE_URL", $BackendUrl, "Process")
 
-    Ensure-BackendDependencies
-    Ensure-FrontendDependencies
+    Install-BackendDependencies
+    Install-FrontendDependencies
     Invoke-Migrations
 
     Start-ManagedProcess "backend" $VenvPython $BackendArguments $RepoRoot $BackendLog $BackendErr | Out-Null
