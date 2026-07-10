@@ -38,6 +38,33 @@ Task 17 Memory API 已按最终契约集成并通过后端测试。Task 18 Web U
 
 以下命令以 Windows PowerShell 和仓库根目录为基准。
 
+### 一键实战启动
+
+推荐日常实战使用脚本启动前后端：
+
+```powershell
+.\scripts\start-dev.ps1 -Open
+```
+
+脚本会自动检查后端虚拟环境、前端依赖、数据库迁移，并启动 FastAPI 与 Vite。启动成功后访问：
+
+- 前端：`http://127.0.0.1:5173`
+- 后端：`http://127.0.0.1:8000`
+
+脚本支持常用参数：
+
+```powershell
+.\scripts\start-dev.ps1 -BackendPort 8001 -FrontendPort 5174 -Open
+.\scripts\start-dev.ps1 -ConfigPath config\sources.example.yaml
+.\scripts\start-dev.ps1 -NoInstall
+.\scripts\start-dev.ps1 -NoMigrations
+.\scripts\start-dev.ps1 -PlanOnly
+```
+
+隐私边界：`scripts/start-dev.ps1` 不读取凭证文件，不解析本地私密配置，不检查或打印任何模型密钥。真实模型调用失败时，请自行检查本机凭证配置是否已准备好。
+
+停止服务：在运行脚本的 PowerShell 窗口按 `Ctrl+C`，脚本会关闭它启动的后端和前端进程。
+
 ### 创建后端虚拟环境
 
 ```powershell
